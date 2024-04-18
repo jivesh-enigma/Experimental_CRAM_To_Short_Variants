@@ -1059,23 +1059,23 @@ task IGV_Snapshots {
 
 task data_transfer_clinical {
     input {
-    File DOC_sampleSummary
-    File DOC_sampleCumulativeCoverageProportions
-    File DOC_sampleGeneSummary
-    File filtered_vcf
-    File DV_stats_report
-    # File path_var_HQ
-    # File path_var_HQ_non_clinical
-    # File path_var_LQ
-    # File variants_HQ_IGV_snapshots
-    # File variants_HQ_non_clinical_IGV_snapshots
-    # File variants_LQ_IGV_snapshots
-    # File total_variant_count
-    # File all_variants_carrier_genes
-    # File all_variants_cancer_genes 
-    String clinical_bucket_path
-    String sampleID
-}
+        File DOC_sampleSummary
+        File DOC_sampleCumulativeCoverageProportions
+        File DOC_sampleGeneSummary
+        File filtered_vcf
+        File DV_stats_report
+        String clinical_bucket_path
+        String sampleID
+        # File path_var_HQ
+        # File path_var_HQ_non_clinical
+        # File path_var_LQ
+        # File variants_HQ_IGV_snapshots
+        # File variants_HQ_non_clinical_IGV_snapshots
+        # File variants_LQ_IGV_snapshots
+        # File total_variant_count
+        # File all_variants_carrier_genes
+        # File all_variants_cancer_genes
+    }
 
     command <<<
     
