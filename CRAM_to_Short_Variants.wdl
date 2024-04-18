@@ -239,20 +239,11 @@ workflow Short_Variant_Pipeline {
     call data_transfer_clinical{
         input:
             clinical_bucket_path=clinical_bucket_path,
-            #total_variant_count=VariantFilter.total_variant_count,
             DOC_sampleSummary=depthOfCov.sampleSummary,
             DOC_sampleCumulativeCoverageProportions=depthOfCov.sampleCumulativeCoverageProportions,
             DOC_sampleGeneSummary=depthOfCov.sampleGeneSummary,
             filtered_vcf=bgzip.filtered_vcf,
             DV_stats_report=deep_variant.stats_report,
-            #path_var_HQ=VariantFilter.path_var_HQ,
-            #path_var_HQ_non_clinical=VariantFilter.path_var_HQ_non_clinical,
-            #path_var_LQ=VariantFilter.path_var_LQ,
-            #variants_HQ_IGV_snapshots=IGV_Snapshots.variants_HQ_IGV_snapshots,
-            #variants_HQ_non_clinical_IGV_snapshots=IGV_Snapshots.variants_HQ_non_clinical_IGV_snapshots,
-            #variants_LQ_IGV_snapshots=IGV_Snapshots.variants_LQ_IGV_snapshots,
-            #all_variants_cancer_genes=VariantFilter.all_variants_cancer_genes, 
-            #all_variants_carrier_genes=VariantFilter.all_variants_carrier_genes,
             sampleID=samplename
     }
 
