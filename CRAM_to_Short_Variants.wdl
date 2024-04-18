@@ -1061,39 +1061,6 @@ task data_transfer_clinical {
 
     command <<<
     
-    # copy the files to local disk:
-    # mv ~{DOC_sampleSummary}  ~/~{sampleID}.sample_summary.csv
-    # mv ~{DOC_sampleCumulativeCoverageProportions}  ~/~{sampleID}.sample_cumulative_coverage_proportions.csv
-    # mv ~{DOC_sampleGeneSummary}  ~/~{sampleID}.sample_gene_summary.csv
-    # mv ~{filtered_vcf}  ~/~{sampleID}.filtered_callset.vcf.gz
-    # mv ~{path_var_HQ}  ~/~{sampleID}.path_var_HQ.csv
-    # mv ~{path_var_HQ_non_clinical}  ~/~{sampleID}.path_var_HQ_non_clinical.csv
-    # mv ~{path_var_LQ}  ~/~{sampleID}.path_var_LQ.csv
-    # mv ~{variants_HQ_IGV_snapshots}  ~/~{sampleID}.variants_HQ_IGV_snapshots.tar.gz
-    # mv ~{variants_HQ_non_clinical_IGV_snapshots}  ~/~{sampleID}.variants_HQ_non_clinical_IGV_snapshots.tar.gz
-    # mv ~{variants_LQ_IGV_snapshots}  ~/~{sampleID}.variants_LQ_IGV_snapshots.tar.gz
-    # mv ~{total_variant_count}  ~/~{sampleID}.total_variant_count.csv
-    # mv ~{all_variants_carrier_genes}  ~/~{sampleID}.all_variants_carrier_genes.csv.gz
-    # mv ~{all_variants_cancer_genes}  ~/~{sampleID}.all_variants_cancer_genes.csv.gz
-    # mv ~{DV_stats_report}  ~/~{sampleID}.visual_report.html
-
-
-
-    # Move file to the file repo:
-    # gsutil cp ~/~{sampleID}.sample_summary.csv    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.sample_cumulative_coverage_proportions.csv    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.sample_gene_summary.csv    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.filtered_callset.vcf.gz    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.path_var_HQ.csv    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.path_var_HQ_non_clinical.csv    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.path_var_LQ.csv    ~{clinical_bucket_path}   
-    # gsutil cp ~/~{sampleID}.variants_HQ_IGV_snapshots.tar.gz    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.variants_HQ_non_clinical_IGV_snapshots.tar.gz    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.variants_LQ_IGV_snapshots.tar.gz    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.total_variant_count.csv    ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.all_variants_carrier_genes.csv.gz   ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.all_variants_cancer_genes.csv.gz   ~{clinical_bucket_path}
-    # gsutil cp ~/~{sampleID}.visual_report.html   ~{clinical_bucket_path}
 
     gsutil -m cp ~{DOC_sampleSummary} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_summary.csv
     gsutil -m cp ~{DOC_sampleCumulativeCoverageProportions} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_cumulative_coverage_proportions.csv
