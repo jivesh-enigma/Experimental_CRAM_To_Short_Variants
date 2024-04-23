@@ -58,6 +58,8 @@ workflow Short_Variant_Pipeline {
         Boolean use_dragen_hard_filtering_ = true
         File dbSNP_vcf
         File dbSNP_vcf_index
+        File dragen_bam
+        File dragen_bai
     }
 
     call depthOfCov {
@@ -126,8 +128,8 @@ workflow Short_Variant_Pipeline {
             haplotype_scatter_count = 10,
             break_bands_at_multiples_of = 100000,
             # contamination = UnmappedBamToAlignedBam.contamination,
-            input_bam = inputCram,
-            input_bam_index = inputCramIndex,
+            input_bam = dragen_bam,
+            input_bam_index = dragen_bai,
             ref_fasta = ref_fasta,
             ref_fasta_index = ref_fasta_index,
             ref_dict = ref_fasta_dict,
