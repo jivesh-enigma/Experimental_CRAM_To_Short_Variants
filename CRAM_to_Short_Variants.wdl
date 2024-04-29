@@ -1,6 +1,7 @@
 version 1.0
 
 import "https://raw.githubusercontent.com/broadinstitute/warp/develop/pipelines/broad/dna_seq/germline/variant_calling/VariantCalling.wdl" as DragenCaller
+import "https://raw.githubusercontent.com/jivesh-enigma/Experimental_CRAM_To_Short_Variants/main/MitochondriaPipeline.wdl" as MitochondrialPipeline
 
 workflow Short_Variant_Pipeline {
     input {
@@ -144,6 +145,41 @@ workflow Short_Variant_Pipeline {
             make_gvcf = false
     }
 
+    call MitochondrialPipeline.MitochondriaPipeline as chrM_calling {
+        input:
+            wgs_aligned_input_bam_or_cram = inputCram,
+            wgs_aligned_input_bam_or_cram_index = inputCramIndex,
+
+            ref_fasta = ref_fasta,
+            ref_fasta_index = ref_fasta_index,
+            ref_dict = ref_fasta_dict,
+
+            mt_dict = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.dict",
+            mt_fasta = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta",
+            mt_fasta_index = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta.fai",
+            mt_amb = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta.amb",
+            mt_ann = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta.ann",
+            mt_bwt = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta.bwt",
+            mt_pac = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta.pac",
+            mt_sa = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.fasta.sa",
+            blacklisted_sites = "gs://gcp-public-data--broad-references/hg38/v0/chrM/blacklist_sites.hg38.chrM.bed",
+            blacklisted_sites_index = "gs://gcp-public-data--broad-references/hg38/v0/chrM/blacklist_sites.hg38.chrM.bed.idx",
+
+            mt_shifted_dict = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.dict",
+            mt_shifted_fasta = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta",
+            mt_shifted_fasta_index = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.fai",
+            mt_shifted_amb = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.amb",
+            mt_shifted_ann = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.ann",
+            mt_shifted_bwt = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.bwt",
+            mt_shifted_pac = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.pac",
+            mt_shifted_sa = "gs://gcp-public-data--broad-references/hg38/v0/chrM/Homo_sapiens_assembly38.chrM.shifted_by_8000_bases.fasta.sa",
+
+            shift_back_chain = "gs://gcp-public-data--broad-references/hg38/v0/chrM/ShiftBack.chain",
+
+            control_region_shifted_reference_interval_list = "gs://gcp-public-data--broad-references/hg38/v0/chrM/control_region_shifted.chrM.interval_list",
+            non_control_region_interval_list = "gs://gcp-public-data--broad-references/hg38/v0/chrM/non_control_region.chrM.interval_list"
+    }
+
 #     call variantcount_vcf {
 #         input:
 #             vcf = bgzip.filtered_vcf,
@@ -272,6 +308,25 @@ workflow Short_Variant_Pipeline {
         File dragen_vcf_detail_metrics = DragenVCF.vcf_detail_metrics
         File dragen_output_vcf = DragenVCF.output_vcf
         File dragen_output_vcf_index = DragenVCF.output_vcf_index
+        #Mitochondrial:
+        File subset_bam = chrM_calling.subset_bam
+        File subset_bai = chrM_calling.subset_bai
+        File mt_aligned_bam = chrM_calling.mt_aligned_bam
+        File mt_aligned_bai = chrM_calling.mt_aligned_bai
+        File out_vcf = chrM_calling.out_vcf
+        File out_vcf_index = chrM_calling.out_vcf_index
+        File split_vcf = chrM_calling.split_vcf
+        File split_vcf_index = chrM_calling.split_vcf_index
+        File input_vcf_for_haplochecker = chrM_calling.input_vcf_for_haplochecker
+        File duplicate_metrics = chrM_calling.duplicate_metrics
+        File coverage_metrics = chrM_calling.coverage_metrics
+        File theoretical_sensitivity_metrics = chrM_calling.theoretical_sensitivity_metrics
+        File contamination_metrics = chrM_calling.contamination_metrics
+        File base_level_coverage_metrics = chrM_calling.base_level_coverage_metrics
+        Int mean_coverage = chrM_calling.mean_coverage
+        Float median_coverage = chrM_calling.median_coverage
+        String major_haplogroup = chrM_calling.major_haplogroup
+        Float contamination = chrM_calling.contamination
   }
     
 }
