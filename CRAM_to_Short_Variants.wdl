@@ -79,6 +79,22 @@ workflow Short_Variant_Pipeline {
             preemptible=preemptible
             
     }
+
+    call depthOfCov as depthOfCov_chrM {
+        input:
+            refFasta=ref_fasta,
+            intervalList="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/twist_chrM_panel/Twist_MitoPanel_chrM_all_hg38_target.bed",
+            refFastaIndex=ref_fasta_index,
+            refFastaDict=ref_fasta_dict,
+            inputCram=inputCram,
+            inputCramIndex=inputCramIndex,
+            sampleName=samplename,
+            geneList=geneList,
+            memoryGb=memoryGb,
+            minBaseQuality=minBaseQuality,
+            minMappingQuality=minMappingQuality,
+            preemptible=preemptible
+    }
     
     
     
@@ -145,6 +161,13 @@ workflow Short_Variant_Pipeline {
             make_gvcf = false
     }
 
+    call bgzip as Dragen_bgzip {
+        input:
+            sample=samplename + ".DRAGEN",
+            uncompressed_vcf=DragenVCF.output_vcf,
+            runtime_disk=runtime_disk
+    }
+
     call MitochondrialPipeline.MitochondriaPipeline as chrM_calling {
         input:
             wgs_aligned_input_bam_or_cram = inputCram,
@@ -178,6 +201,20 @@ workflow Short_Variant_Pipeline {
 
             control_region_shifted_reference_interval_list = "gs://gcp-public-data--broad-references/hg38/v0/chrM/control_region_shifted.chrM.interval_list",
             non_control_region_interval_list = "gs://gcp-public-data--broad-references/hg38/v0/chrM/non_control_region.chrM.interval_list"
+    }
+
+    call bgzip as chrM_bgzip {
+        input:
+            sample=samplename + ".chrM",
+            uncompressed_vcf=chrM_calling.split_vcf,
+            runtime_disk=runtime_disk
+    }
+
+    call gatkVCF {
+        input:
+            sample_id=samplename,
+            dragenVCF=Dragen_bgzip.filtered_vcf,
+            chrmVCF=chrM_bgzip.filtered_vcf
     }
 
 #     call variantcount_vcf {
@@ -297,6 +334,16 @@ workflow Short_Variant_Pipeline {
         File sampleIntervalStatistics = depthOfCov.sampleIntervalStatistics
         File sampleCumulativeCoverageProportions = depthOfCov.sampleCumulativeCoverageProportions
         File sampleCumulativeCoverageCounts = depthOfCov.sampleCumulativeCoverageCounts
+        #DOC chrM:
+        File chrM_sampleGeneSummary = depthOfCov_chrM.sampleGeneSummary
+        File chrM_sampleSummary = depthOfCov_chrM.sampleSummary
+        Float chrM_sampleMeanCoverage = depthOfCov_chrM.sampleMeanCoverage
+        Float chrM_sample10XCoverage = depthOfCov_chrM.sample10XCoverage
+        File chrM_sampleStatistics = depthOfCov_chrM.sampleStatistics
+        File chrM_sampleIntervalSummary = depthOfCov_chrM.sampleIntervalSummary
+        File chrM_sampleIntervalStatistics = depthOfCov_chrM.sampleIntervalStatistics
+        File chrM_sampleCumulativeCoverageProportions = depthOfCov_chrM.sampleCumulativeCoverageProportions
+        File chrM_sampleCumulativeCoverageCounts = depthOfCov_chrM.sampleCumulativeCoverageCounts
         #DV:
         File DV_gvcf = deep_variant.gvcf
         File DV_resource_log = deep_variant.resource_log
@@ -309,24 +356,27 @@ workflow Short_Variant_Pipeline {
         File dragen_output_vcf = DragenVCF.output_vcf
         File dragen_output_vcf_index = DragenVCF.output_vcf_index
         #Mitochondrial:
-        File subset_bam = chrM_calling.subset_bam
-        File subset_bai = chrM_calling.subset_bai
-        File mt_aligned_bam = chrM_calling.mt_aligned_bam
-        File mt_aligned_bai = chrM_calling.mt_aligned_bai
-        File out_vcf = chrM_calling.out_vcf
-        File out_vcf_index = chrM_calling.out_vcf_index
-        File split_vcf = chrM_calling.split_vcf
-        File split_vcf_index = chrM_calling.split_vcf_index
-        File input_vcf_for_haplochecker = chrM_calling.input_vcf_for_haplochecker
-        File duplicate_metrics = chrM_calling.duplicate_metrics
-        File coverage_metrics = chrM_calling.coverage_metrics
-        File theoretical_sensitivity_metrics = chrM_calling.theoretical_sensitivity_metrics
-        File contamination_metrics = chrM_calling.contamination_metrics
-        File base_level_coverage_metrics = chrM_calling.base_level_coverage_metrics
-        Int mean_coverage = chrM_calling.mean_coverage
-        Float median_coverage = chrM_calling.median_coverage
-        String major_haplogroup = chrM_calling.major_haplogroup
-        Float contamination = chrM_calling.contamination
+        File chrM_subset_bam = chrM_calling.subset_bam
+        File chrM_subset_bai = chrM_calling.subset_bai
+        File chrM_mt_aligned_bam = chrM_calling.mt_aligned_bam
+        File chrM_mt_aligned_bai = chrM_calling.mt_aligned_bai
+        File chrM_out_vcf = chrM_calling.out_vcf
+        File chrM_out_vcf_index = chrM_calling.out_vcf_index
+        File chrM_split_vcf = chrM_calling.split_vcf
+        File chrM_split_vcf_index = chrM_calling.split_vcf_index
+        File chrM_input_vcf_for_haplochecker = chrM_calling.input_vcf_for_haplochecker
+        File chrM_duplicate_metrics = chrM_calling.duplicate_metrics
+        File chrM_coverage_metrics = chrM_calling.coverage_metrics
+        File chrM_theoretical_sensitivity_metrics = chrM_calling.theoretical_sensitivity_metrics
+        File chrM_contamination_metrics = chrM_calling.contamination_metrics
+        File chrM_base_level_coverage_metrics = chrM_calling.base_level_coverage_metrics
+        Int chrM_mean_coverage = chrM_calling.mean_coverage
+        Float chrM_median_coverage = chrM_calling.median_coverage
+        String chrM_major_haplogroup = chrM_calling.major_haplogroup
+        Float chrM_contamination = chrM_calling.contamination
+        # GATK VCF:
+        File gatk_vcf = gatkVCF.gatk_vcf
+        File gatk_vcf_index = gatkVCF.gatk_vcf_index
   }
     
 }
@@ -1122,5 +1172,40 @@ task data_transfer_clinical {
         memory: "1GB"
         disks: 'local-disk 1 HDD' 
         preemptible: "0"
+    }
+}
+
+task gatkVCF {
+    input {
+        String sample_id
+        File dragenVCF
+        File chrmVCF
+    }
+
+    command <<<
+        # Concatenate the vcfs
+        bcftools concat ~{dragenVCF} ~{chrmVCF} -Oz -o ~{sample_id}.concat.vcf.gz
+
+        # Create a renaming file to change sample name
+        echo "~{sample_id} ~{sample_id}_GATK" > gatk_renaming.txt
+
+        # Change sample name in the concatenated vcf
+        bcftools reheader -s gatk_renaming.txt -o ~{sample_id}.gatk.vcf.gz ~{sample_id}.concat.vcf.gz
+
+        # Create index
+        bcftools index -t ~{sample_id}.gatk.vcf.gz
+
+    >>>
+
+    output {
+        File gatk_vcf = "~{sample_id}.gatk.vcf.gz"
+        File gatk_vcf_index = "~{sample_id}.gatk.vcf.gz.tbi"
+    }
+
+    runtime {
+        memory: '1 GB'
+        disks: 'local-disk ~{runtime_disk} HDD'
+        preemptible: 3
+        docker: 'jiveshenigma/htslib-samtools-bcftools:v1'
     }
 }
