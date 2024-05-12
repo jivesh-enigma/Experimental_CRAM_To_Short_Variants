@@ -210,11 +210,19 @@ workflow Short_Variant_Pipeline {
             runtime_disk=runtime_disk
     }
 
+    call addVAF {
+        input:
+            sample=samplename,
+            dragenVCF = Dragen_bgzip.filtered_vcf,
+            chrmVCF=chrM_bgzip.filtered_vcf,
+            runtime_disk = runtime_disk
+    }
+
     call gatkVCF {
         input:
             sample_id=samplename,
-            dragenVCF=Dragen_bgzip.filtered_vcf,
-            chrmVCF=chrM_bgzip.filtered_vcf,
+            dragenVCF=addVAF.dragen_vcf,
+            chrmVCF=addVAF.chrM_vcf,
             runtime_disk = runtime_disk
     }
 
@@ -1176,6 +1184,34 @@ task data_transfer_clinical {
     }
 }
 
+task addVAF {
+    input {
+        String sample
+        File dragenVCF
+        File chrmVCF
+        Int runtime_disk
+    }
+
+    command <<<
+        # Add VAF to the dragen and mitochondrial vcfs
+        bcftools +fill-tags -Oz -o ~{sample}.DRAGEN.vcf.gz ~{dragenVCF} -- -t VAF
+        
+        bcftools +fill-tags -Oz -o ~{sample}.chrM.vcf.gz ~{chrmVCF} -- -t VAF
+    >>>
+
+    output {
+        File dragen_vcf = "~{sample}.DRAGEN.vcf.gz"
+        File chrM_vcf = "~{sample}.chrM.vcf.gz"
+    }
+
+    runtime {
+        memory: '1 GB'
+        disks: 'local-disk ~{runtime_disk} HDD'
+        preemptible: 3
+        docker: 'jiveshenigma/htslib-samtools-bcftools:v1'
+    }
+}
+
 task gatkVCF {
     input {
         String sample_id
@@ -1185,13 +1221,8 @@ task gatkVCF {
     }
 
     command <<<
-        # Add VAF to the dragen and mitochondrial vcfs
-        bcftools +fill-tags -Oz -o dragen.vcf.gz ~{dragenVCF} -- -t VAF
-
-        bcftools +fill-tags -Oz -o chrM.vcf.gz ~{chrmVCF} -- -t VAF
-
         # Concatenate the vcfs
-        bcftools concat dragen.vcf.gz chrM.vcf.gz -Oz -o ~{sample_id}.concat.vcf.gz
+        bcftools concat ~{dragenVCF} ~{chrmVCF} -Oz -o ~{sample_id}.concat.vcf.gz
 
         # Create a renaming file to change sample name
         echo "~{sample_id} ~{sample_id}_GATK" > gatk_renaming.txt
