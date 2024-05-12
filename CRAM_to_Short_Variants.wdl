@@ -214,7 +214,8 @@ workflow Short_Variant_Pipeline {
         input:
             sample_id=samplename,
             dragenVCF=Dragen_bgzip.filtered_vcf,
-            chrmVCF=chrM_bgzip.filtered_vcf
+            chrmVCF=chrM_bgzip.filtered_vcf,
+            runtime_disk = runtime_disk
     }
 
 #     call variantcount_vcf {
@@ -1180,6 +1181,7 @@ task gatkVCF {
         String sample_id
         File dragenVCF
         File chrmVCF
+        Int runtime_disk
     }
 
     command <<<
