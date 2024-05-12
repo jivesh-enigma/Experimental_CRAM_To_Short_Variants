@@ -1185,8 +1185,13 @@ task gatkVCF {
     }
 
     command <<<
+        # Add VAF to the dragen and mitochondrial vcfs
+        bcftools +fill-tags -Oz -o dragen.vcf.gz ~{dragenVCF} -- -t VAF
+
+        bcftools +fill-tags -Oz -o chrM.vcf.gz ~{chrmVCF} -- -t VAF
+
         # Concatenate the vcfs
-        bcftools concat ~{dragenVCF} ~{chrmVCF} -Oz -o ~{sample_id}.concat.vcf.gz
+        bcftools concat dragen.vcf.gz chrM.vcf.gz -Oz -o ~{sample_id}.concat.vcf.gz
 
         # Create a renaming file to change sample name
         echo "~{sample_id} ~{sample_id}_GATK" > gatk_renaming.txt
