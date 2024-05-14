@@ -1288,8 +1288,8 @@ task mergeVCF {
     >>>
 
     output {
-        merged_vcf = "~{sample_id}.merged.vcf.gz"
-        merged_vcf_index = "~{sample_id}.merged.vcf.gz.tbi"
+        File merged_vcf = "~{sample_id}.merged.vcf.gz"
+        File merged_vcf_index = "~{sample_id}.merged.vcf.gz.tbi"
     }
 
     runtime {
