@@ -237,7 +237,7 @@ workflow Short_Variant_Pipeline {
 
     call variantcount_vcf {
         input:
-            vcf = mergeVCF.filtered_vcf,
+            vcf = mergeVCF.merged_vcf,
             sampleId=samplename,
             HDD=HDD,
             RAM=RAM
@@ -247,7 +247,7 @@ workflow Short_Variant_Pipeline {
     
     call UnZip { 
         input:
-            vcfFileGz = mergeVCF.filtered_vcf,
+            vcfFileGz = mergeVCF.merged_vcf,
             sampleId = samplename,
             RAM=RAM,
             HDD=HDD
