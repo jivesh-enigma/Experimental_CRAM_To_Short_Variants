@@ -235,71 +235,71 @@ workflow Short_Variant_Pipeline {
             runtime_disk = runtime_disk
     }
 
-#     call variantcount_vcf {
-#         input:
-#             vcf = bgzip.filtered_vcf,
-#             sampleId=samplename,
-#             HDD=HDD,
-#             RAM=RAM
+    call variantcount_vcf {
+        input:
+            vcf = mergeVCF.filtered_vcf,
+            sampleId=samplename,
+            HDD=HDD,
+            RAM=RAM
 
-#     }   
+    }   
 
     
-#     call UnZip { 
-#         input:
-#             vcfFileGz = bgzip.filtered_vcf,
-#             sampleId = samplename,
-#             RAM=RAM,
-#             HDD=HDD
-#     }
+    call UnZip { 
+        input:
+            vcfFileGz = mergeVCF.filtered_vcf,
+            sampleId = samplename,
+            RAM=RAM,
+            HDD=HDD
+    }
     
-#     call VTRecal {
-#         input:
+    call VTRecal {
+        input:
 
-#             vcfFile=UnZip.vcfFile,
-#             refFasta=ref_fasta,
-#             refFastaDict=ref_fasta_dict,
-#             refFastaIdx=ref_fasta_index,
-#             sampleId=samplename, 
-#             RAM=RAM,
-#             HDD=HDD
-#     }
+            vcfFile=UnZip.vcfFile,
+            refFasta=ref_fasta,
+            refFastaDict=ref_fasta_dict,
+            refFastaIdx=ref_fasta_index,
+            sampleId=samplename, 
+            RAM=RAM,
+            HDD=HDD
+    }
     
-#     call GATKVariantsToTable {
-#         input:
-#             normalizedvcfFileGz=VTRecal.normalizedVCF,
-#             refFasta=ref_fasta,
-#             refFastaFai=ref_fasta_index,
-#             refFastaDict=ref_fasta_dict,
-#             samplesetId=samplename,
-#             GATK_diskGb=GATK_diskGb,
-#             GATK_memoryGb=GATK_memoryGb
+    call GATKVariantsToTable {
+        input:
+            normalizedvcfFileGz=VTRecal.normalizedVCF,
+            refFasta=ref_fasta,
+            refFastaFai=ref_fasta_index,
+            refFastaDict=ref_fasta_dict,
+            samplesetId=samplename,
+            GATK_diskGb=GATK_diskGb,
+            GATK_memoryGb=GATK_memoryGb
            
-#     }
-#     call vep_task {
-#         input:
+    }
+    call vep_task {
+        input:
        
-#             refFasta=ref_fasta,
-#             refFastaFai=ref_fasta_index,
-#             refFastaDict=ref_fasta_dict,
-#             samplesetId=samplename,
-#             normalizedvcfFileGz=VTRecal.normalizedVCF,
-#             bootDiskSizeGb_VEP=bootDiskSizeGb_VEP,
-#             cpu_VEP=cpu_VEP,
-#             diskGb_VEP=diskGb_VEP,
-#             fork=fork,
-#             memoryGb_VEP=memoryGb_VEP,
-#             nearestGeneDistance=nearestGeneDistance
-#     }
+            refFasta=ref_fasta,
+            refFastaFai=ref_fasta_index,
+            refFastaDict=ref_fasta_dict,
+            samplesetId=samplename,
+            normalizedvcfFileGz=VTRecal.normalizedVCF,
+            bootDiskSizeGb_VEP=bootDiskSizeGb_VEP,
+            cpu_VEP=cpu_VEP,
+            diskGb_VEP=diskGb_VEP,
+            fork=fork,
+            memoryGb_VEP=memoryGb_VEP,
+            nearestGeneDistance=nearestGeneDistance
+    }
     
-#     call combineOutputFiles {
-#         input:
-#             samplesetId=samplename,
-#             vepOutputFile=vep_task.VEP_Output,
-#             gatkOutputFile=GATKVariantsToTable.GATK_output,
-#             diskSpace=diskSpace
+    call combineOutputFiles {
+        input:
+            samplesetId=samplename,
+            vepOutputFile=vep_task.VEP_Output,
+            gatkOutputFile=GATKVariantsToTable.GATK_output,
+            diskSpace=diskSpace
             
-#     }
+    }
 
 #     call VariantFilter{
 #    input: 
@@ -398,6 +398,8 @@ workflow Short_Variant_Pipeline {
         # Merged VCF:
         File merged_vcf = mergeVCF.merged_vcf
         File merged_vcf_index = mergeVCF.merged_vcf_index
+        # VEP:
+        File vepannotated_vcf= combineOutputFiles.vepannotated_vcf
   }
     
 }
