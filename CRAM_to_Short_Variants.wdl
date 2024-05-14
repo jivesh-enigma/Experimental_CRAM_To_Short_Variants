@@ -226,6 +226,14 @@ workflow Short_Variant_Pipeline {
             runtime_disk = runtime_disk
     }
 
+    call mergeVCF {
+        deepvcf = bgzip.filtered_vcf,
+        gatkvcf = gatkVCF.gatk_vcf,
+        gatkvcf_index = gatkVCF.gatk_vcf_index,
+        sample_id = samplename,
+        runtime_disk = runtime_disk
+    }
+
 #     call variantcount_vcf {
 #         input:
 #             vcf = bgzip.filtered_vcf,
@@ -386,6 +394,9 @@ workflow Short_Variant_Pipeline {
         # GATK VCF:
         File gatk_vcf = gatkVCF.gatk_vcf
         File gatk_vcf_index = gatkVCF.gatk_vcf_index
+        # Merged VCF:
+        File merged_vcf = mergeVCF.merged_vcf
+        File merged_vcf_index = mergeVCF.merged_vcf_index
   }
     
 }
@@ -1246,4 +1257,45 @@ task gatkVCF {
         preemptible: 3
         docker: 'jiveshenigma/htslib-samtools-bcftools:v1'
     }
+}
+
+task mergeVCF {
+    input {
+        File deepvcf
+        File gatkvcf
+        File gatkvcf_index
+        String sample_id
+        Int runtime_disk
+    }
+
+    command <<<
+        # Create a renaming file to change sample name in DV vcf
+        echo "~{sample_id} ~{sample_id}_DV" > dv_renaming.txt
+
+        # Change sample name in the DV vcf
+        bcftools reheader -s dv_renaming.txt -o ~{sample_id}.dv.vcf.gz ~{deepvcf}
+
+        # Creating index for new dv vcf
+        bcftools index -t ~{sample_id}.dv.vcf.gz
+
+        # Merging the DV vcf and GATK VCF
+        bcftools merge ~{sample_id}.dv.vcf.gz ~{gatkvcf} -Oz -o ~{sample_id}.merged.vcf.gz
+
+        # index for merged vcf
+        bcftools index -t ~{sample_id}.merged.vcf.gz
+
+    >>>
+
+    output {
+        merged_vcf = "~{sample_id}.merged.vcf.gz"
+        merged_vcf_index = "~{sample_id}.merged.vcf.gz.tbi"
+    }
+
+    runtime {
+        memory: '1 GB'
+        disks: 'local-disk ~{runtime_disk} HDD'
+        preemptible: 3
+        docker: 'jiveshenigma/htslib-samtools-bcftools:v1'
+    }
+    
 }
