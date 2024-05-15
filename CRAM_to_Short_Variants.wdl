@@ -301,33 +301,33 @@ workflow Short_Variant_Pipeline {
             
     }
 
-#     call VariantFilter{
-#    input: 
-#      input_vcf=combineOutputFiles.vepannotated_vcf,
-#      master_gene_list=master_gene_list,
-#      GOF_gene_list=GOF_gene_list,
-#      samplename=samplename,
-#      boot_disk_gb=boot_disk_gb,
-#      chain=chain,
-#      Clinvar_genes=Clinvar_genes,
-#      cpu_cores=cpu_cores,
-#      GCD_genes=GCD_genes,
-#      OMIM_genes=OMIM_genes,
-#      output_disk_gb=output_disk_gb,
-#      ram_gb=ram_gb,
-#      Rscript_file=Rscript_file
-#   }
+    call VariantFilter {
+        input: 
+            input_vcf=combineOutputFiles.vepannotated_vcf,
+            master_gene_list=master_gene_list,
+            GOF_gene_list=GOF_gene_list,
+            samplename=samplename,
+            boot_disk_gb=boot_disk_gb,
+            chain=chain,
+            Clinvar_genes=Clinvar_genes,
+            cpu_cores=cpu_cores,
+            GCD_genes=GCD_genes,
+            OMIM_genes=OMIM_genes,
+            output_disk_gb=output_disk_gb,
+            ram_gb=ram_gb,
+            Rscript_file=Rscript_file
+    }
 
-#     call IGV_Snapshots{
-#     input: 
-#     inputCram=inputCram,
-#     inputCramIndex=inputCramIndex,
-#     path_var_HQ_IGV_bed=VariantFilter.path_var_HQ_IGV_bed,
-#     path_var_HQ_non_clinical_IGV_bed=VariantFilter.path_var_HQ_non_clinical_IGV_bed,
-#     path_var_LQ_IGV_bed=VariantFilter.path_var_LQ_IGV_bed,
-#     sampleID=samplename,
-#     memoryGb=memoryGb
-#   }
+    call IGV_Snapshots {
+        input: 
+            inputCram=inputCram,
+            inputCramIndex=inputCramIndex,
+            path_var_HQ_IGV_bed=VariantFilter.path_var_HQ_IGV_bed,
+            path_var_HQ_non_clinical_IGV_bed=VariantFilter.path_var_HQ_non_clinical_IGV_bed,
+            path_var_LQ_IGV_bed=VariantFilter.path_var_LQ_IGV_bed,
+            sampleID=samplename,
+            memoryGb=memoryGb
+    }
 
     call data_transfer_clinical{
         input:
@@ -400,6 +400,14 @@ workflow Short_Variant_Pipeline {
         File merged_vcf_index = mergeVCF.merged_vcf_index
         # VEP:
         File vepannotated_vcf= combineOutputFiles.vepannotated_vcf
+        #variant_filtering:
+        File path_var_HQ= VariantFilter.path_var_HQ
+        File path_var_HQ_non_clinical= VariantFilter.path_var_HQ_non_clinical        
+        File path_var_LQ= VariantFilter.path_var_LQ
+        #IGV:
+        File variants_HQ_IGV_snapshots = IGV_Snapshots.variants_HQ_IGV_snapshots
+        File variants_HQ_non_clinical_IGV_snapshots = IGV_Snapshots.variants_HQ_non_clinical_IGV_snapshots
+        File variants_LQ_IGV_snapshots = IGV_Snapshots.variants_LQ_IGV_snapshots
   }
     
 }
