@@ -50,6 +50,7 @@ workflow Short_Variant_Pipeline {
         Int nearestGeneDistance
 
         # Set DRAGEN-related arguments according to the "functional equivalence" mode
+        Int dragen_scatter_count = 10
         Boolean run_dragen_mode_variant_calling_ = true
         Boolean use_spanning_event_genotyping_ = false
         Boolean unmap_contaminant_reads_ = false
@@ -142,7 +143,7 @@ workflow Short_Variant_Pipeline {
             use_spanning_event_genotyping = use_spanning_event_genotyping_,
             calling_interval_list = "gs://gcp-public-data--broad-references/hg38/v0/wgs_calling_regions.hg38.interval_list",
             evaluation_interval_list = "gs://gcp-public-data--broad-references/hg38/v0/wgs_evaluation_regions.hg38.interval_list",
-            haplotype_scatter_count = 10,
+            haplotype_scatter_count = dragen_scatter_count,
             break_bands_at_multiples_of = 100000,
             # contamination = UnmappedBamToAlignedBam.contamination,
             input_bam = dragen_bam,
@@ -155,7 +156,7 @@ workflow Short_Variant_Pipeline {
             dbsnp_vcf_index = dbSNP_vcf_index,
             base_file_name = samplename + ".DRAGEN",
             final_vcf_base_name = samplename + ".DRAGEN",
-            agg_preemptible_tries = 3,
+            agg_preemptible_tries = 5,
             use_gatk3_haplotype_caller = use_gatk3_haplotype_caller_,
             use_dragen_hard_filtering = use_dragen_hard_filtering_,
             make_gvcf = false
@@ -506,7 +507,7 @@ fi
     runtime {
         memory: '2 GB'
         disks: 'local-disk 1 HDD'
-        preemptible: 3
+        preemptible: 5
         docker: 'quay.io/biocontainers/bedtools:2.28.0--hdf88d34_0'
     }
 }
@@ -536,7 +537,7 @@ task interval_list_to_bed {
     runtime {
         memory: '1 GB'
         disks: 'local-disk 1 HDD'
-        preemptible: 3
+        preemptible: 5
         docker: 'quay.io/biocontainers/bedtools:2.28.0--hdf88d34_0'
     }
 }
@@ -643,7 +644,7 @@ task bgzip {
     runtime {
         memory: '1 GB'
         disks: 'local-disk ~{runtime_disk} HDD'
-        preemptible: 3
+        preemptible: 5
         docker: 'quay.io/biocontainers/bcftools:1.9--ha228f0b_3'
     }
 }
@@ -672,7 +673,7 @@ task variantcount_vcf {
         docker: "biocontainers/bcftools:v1.9-1-deb_cv1"
         memory: RAM + " GB"
         disks: "local-disk " + HDD + " HDD"
-        preemptible: 3
+        preemptible: 5
     }
 }
 
@@ -698,7 +699,7 @@ task UnZip {
         docker: "vanallenlab/vt:3.13.2018"
         memory: RAM + "GB"
         disks: "local-disk" + " " + HDD + " " + "HDD"
-        preemptible: "3"
+        preemptible: 5
     }
 }
 
@@ -746,7 +747,7 @@ task VTRecal {
         docker: "vanallenlab/vt:3.13.2018"
         memory: RAM + " GB"
         disks: "local-disk " + HDD + " HDD"
-        preemptible: "3"
+        preemptible: 5
     }
 }
 
@@ -877,7 +878,7 @@ task vep_task {
     runtime {
         docker: "ensemblorg/ensembl-vep:release_109.2"    
         bootDiskSizeGb : "~{bootDiskSizeGb_VEP}"
-        preemptible    : 0
+        preemptible    : 5
         cpu            : "~{cpu_VEP}"
         disks          : "local-disk ~{diskGb_VEP} SSD"
         memory         : "~{memoryGb_VEP} GB"
@@ -945,7 +946,7 @@ input {
         memory: "~{GATK_memoryGb} GB"
         cpu: "1"
         disks: "local-disk ~{GATK_diskGb} HDD"
-        preemptible: 0
+        preemptible: 5
     }
 }
 
@@ -989,7 +990,7 @@ task combineOutputFiles {
     
     runtime {
         docker: "ensemblorg/ensembl-vep:release_109.2"    
-        preemptible    : 0
+        preemptible    : 5
         cpu            : "1"
         disks          : "local-disk ~{diskSpace} HDD"
         memory         : "10 GB"
@@ -1202,7 +1203,7 @@ task data_transfer_clinical {
         docker: "google/cloud-sdk"
         memory: "1GB"
         disks: 'local-disk 1 HDD' 
-        preemptible: "0"
+        preemptible: 3
     }
 }
 
