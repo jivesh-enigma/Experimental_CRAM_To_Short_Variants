@@ -269,7 +269,7 @@ workflow Short_Variant_Pipeline {
 
     call mergeVCF {
         input:
-            deepvcf = bgzip.filtered_vcf,
+            deepvcf = MergeVCFs.output_vcf,
             gatkvcf = gatkVCF.gatk_vcf,
             gatkvcf_index = gatkVCF.gatk_vcf_index,
             sample_id = samplename,
