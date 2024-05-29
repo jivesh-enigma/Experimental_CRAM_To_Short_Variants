@@ -1,5 +1,5 @@
 version 1.0
-
+import "https://raw.githubusercontent.com/broadinstitute/warp/develop/tasks/broad/Utilities.wdl" as Utils
 import "https://raw.githubusercontent.com/broadinstitute/warp/develop/pipelines/broad/dna_seq/germline/variant_calling/VariantCalling.wdl" as DragenCaller
 import "https://raw.githubusercontent.com/jivesh-enigma/Experimental_CRAM_To_Short_Variants/main/MitochondriaPipeline.wdl" as MitochondrialPipeline
 
@@ -97,44 +97,83 @@ workflow Short_Variant_Pipeline {
             preemptible=preemptible
     }
     
-    
-    
     call ChooseBed {
         input:
             TestType=TestType, 
             WGS_interval_list=WGS_interval_list,
             WES_interval_list=WES_interval_list
 
-  }
-    
-
-    
-    call interval_list_to_bed {
-        input:
-            interval_list=ChooseBed.model_interval_list
     }
 
-  
-    call deep_variant {
+    # Break the calling interval_list into sub-intervals
+    # Perform variant calling on the sub-intervals, and then gather the results
+    call Utils.ScatterIntervalList as ScatterIntervalList {
         input:
-            sample=samplename,
-            capture_bed=interval_list_to_bed.bed,
-            Cram=inputCram,
-            crai=inputCramIndex,
-            reference_fasta=ref_fasta,
-            reference_fasta_fai=ref_fasta_index,
-            model_type=TestType,
-            resource_log_interval=resource_log_interval,
-            runtime_cpus=runtime_cpus,
-            runtime_docker=runtime_docker,
-            runtime_preemptible=runtime_preemptible
+            interval_list = ChooseBed.model_interval_list,
+            scatter_count = 10,
+            break_bands_at_multiples_of = 100000
     }
 
-    call bgzip {
+    # We need disk to localize the sharded input and output due to the scatter for HaplotypeCaller.
+    # If we take the number we are scattering by and reduce by 20 we will have enough disk space
+    # to account for the fact that the data is quite uneven across the shards.
+    Int potential_hc_divisor = ScatterIntervalList.interval_count - 20
+    Int hc_divisor = if potential_hc_divisor > 1 then potential_hc_divisor else 1
+
+    # Call variants in parallel over WGS/WES calling intervals
+    scatter (scattered_interval_list in ScatterIntervalList.out) {
+
+        call interval_list_to_bed {
+            input:
+                interval_list=scattered_interval_list
+        }
+
+        call deep_variant {
+            input:
+                sample=samplename,
+                capture_bed=interval_list_to_bed.bed,
+                Cram=inputCram,
+                crai=inputCramIndex,
+                reference_fasta=ref_fasta,
+                reference_fasta_fai=ref_fasta_index,
+                model_type=TestType,
+                resource_log_interval=resource_log_interval,
+                runtime_cpus=runtime_cpus,
+                runtime_docker=runtime_docker,
+                runtime_preemptible=runtime_preemptible,
+                dv_scatter = hc_divisor
+        }
+
+        call bgzip {
+            input:
+                sample=samplename,
+                uncompressed_vcf=deep_variant.vcf,
+                runtime_disk=runtime_disk
+        }
+
+        File vcfs_to_merge = bgzip.filtered_vcf
+        File vcf_indices_to_merge = bgzip.filtered_vcf_index
+        File gvcfs_to_merge = deep_variant.gvcf
+        File gvcf_indices_to_merge = deep_variant.gvcf_index
+        
+    }
+
+    # Combine by-interval (g)VCFs into a single sample (g)VCF file
+    
+    call Calling.MergeVCFs as MergeVCFs {
         input:
-            sample=samplename,
-            uncompressed_vcf=deep_variant.vcf,
-            runtime_disk=runtime_disk
+            input_vcfs = vcfs_to_merge,
+            input_vcfs_indexes = vcf_indices_to_merge,
+            output_vcf_name = samplename + ".vcf.gz",
+            preemptible_tries = runtime_preemptible
+    }
+
+    call Calling.MergeVCFs as MergeGVCFs {
+        input:
+            input_vcfs_indexes = gvcf_indices_to_merge,
+            input_vcfs = gvcfs_to_merge,
+            output_vcf_name = samplename + ".gvcf.gz",
+            preemptible_tries = runtime_preemptible
     }
 
     call DragenCaller.VariantCalling as DragenVCF {
@@ -364,11 +403,12 @@ workflow Short_Variant_Pipeline {
         File chrM_sampleCumulativeCoverageProportions = depthOfCov_chrM.sampleCumulativeCoverageProportions
         File chrM_sampleCumulativeCoverageCounts = depthOfCov_chrM.sampleCumulativeCoverageCounts
         #DV:
-        File DV_gvcf = deep_variant.gvcf
-        File DV_resource_log = deep_variant.resource_log
-        File DV_stats_report = deep_variant.stats_report
-        File DV_filtered_vcf = bgzip.filtered_vcf
-        File DV_filtered_vcf_index = bgzip.filtered_vcf_index
+        File DV_gvcf = MergeGVCFs.output_vcf
+        File DV_gvcf_index = MergeGVCFs.output_vcf_index
+        # File DV_resource_log = deep_variant.resource_log
+        # File DV_stats_report = deep_variant.stats_report
+        File DV_filtered_vcf = MergeVCFs.output_vcf
+        File DV_filtered_vcf_index = MergeVCFs.output_vcf_index
         #DRAGEN:
         File dragen_vcf_summary_metrics = DragenVCF.vcf_summary_metrics
         File dragen_vcf_detail_metrics = DragenVCF.vcf_detail_metrics
@@ -547,62 +587,66 @@ task interval_list_to_bed {
 
 task deep_variant {
     input {
-    String sample
-    File Cram
-    File crai
-    String model_type 
-    File reference_fasta
-    File reference_fasta_fai
-    File capture_bed
+        String sample
+        File Cram
+        File crai
+        String model_type 
+        File reference_fasta
+        File reference_fasta_fai
+        File capture_bed
 
-    Int runtime_cpus
-    String runtime_docker
-    Int runtime_memory = ceil(1.1 * runtime_cpus)
-    Int addtional_disk_space_gb = 100
-    Int disk_space_gb = ceil(size(Cram, "GB")  * 4 ) + addtional_disk_space_gb
-    Int runtime_preemptible
-    Int resource_log_interval
-}
-    command <<<
-    # log resource usage for debugging purposes
-    function runtimeInfo() {
-        echo [$(date)]
-        echo \* CPU usage: $(top -bn 2 -d 0.01 | grep '^%Cpu' | tail -n 1 | awk '{print $2}')%
-        echo \* Memory usage: $(free -m | grep Mem | awk '{ OFMT="%.0f"; print ($3/$2)*100; }')%
-        echo \* Disk usage: $(df | grep cromwell_root | awk '{ print $5 }')
+        Int runtime_cpus
+        String runtime_docker
+        Int runtime_memory = ceil(1.1 * runtime_cpus)
+        Int runtime_preemptible
+        Int resource_log_interval
+        Int dv_scatter
     }
-    while true;
-        do runtimeInfo >> resource.log;
-        sleep ~{resource_log_interval};
-    done &
-    lscpu
 
-    set -xeuo pipefail
+    Float ref_size = ceil(size(reference_fasta, "GiB") + size(reference_fasta_fai, "GiB"))
+    Int disk_space_gb = ceil(((size(Cram, "GiB") + 30) / dv_scatter) + ref_size) + 20
 
-    # make symbolic links to ensure Cram and index are in expected structure even after localization
-    ln -s ~{crai} reads.crai
-    ln -s ~{Cram} reads.cram
+    command <<<
+        # log resource usage for debugging purposes
+        function runtimeInfo() {
+            echo [$(date)]
+            echo \* CPU usage: $(top -bn 2 -d 0.01 | grep '^%Cpu' | tail -n 1 | awk '{print $2}')%
+            echo \* Memory usage: $(free -m | grep Mem | awk '{ OFMT="%.0f"; print ($3/$2)*100; }')%
+            echo \* Disk usage: $(df | grep cromwell_root | awk '{ print $5 }')
+        }
+        while true;
+            do runtimeInfo >> resource.log;
+            sleep ~{resource_log_interval};
+        done &
+        lscpu
 
-    # make symbolic links to ensure reference and index are in expected structure even after localization
-    ln -s ~{reference_fasta} reference.fa
-    ln -s ~{reference_fasta_fai} reference.fa.fai
+        set -xeuo pipefail
 
-    mkdir deepvariant_tmp
+        # make symbolic links to ensure Cram and index are in expected structure even after localization
+        ln -s ~{crai} reads.crai
+        ln -s ~{Cram} reads.cram
 
-    /opt/deepvariant/bin/run_deepvariant \
-        --model_type=~{model_type} \
-        --ref=reference.fa \
-        --reads=reads.cram \
-        --regions=~{capture_bed} \
-        --intermediate_results_dir=deepvariant_tmp \
-        --output_vcf=~{sample}.vcf \
-        --output_gvcf=~{sample}.gvcf.gz \
-        --num_shards=~{runtime_cpus}
+        # make symbolic links to ensure reference and index are in expected structure even after localization
+        ln -s ~{reference_fasta} reference.fa
+        ln -s ~{reference_fasta_fai} reference.fa.fai
+
+        mkdir deepvariant_tmp
+
+        /opt/deepvariant/bin/run_deepvariant \
+            --model_type=~{model_type} \
+            --ref=reference.fa \
+            --reads=reads.cram \
+            --regions=~{capture_bed} \
+            --intermediate_results_dir=deepvariant_tmp \
+            --output_vcf=~{sample}.vcf \
+            --output_gvcf=~{sample}.g.vcf.gz \
+            --num_shards=~{runtime_cpus}
     >>>
 
     output {
         File vcf = '~{sample}.vcf'
-        File gvcf = '~{sample}.gvcf.gz'
+        File gvcf = '~{sample}.g.vcf.gz'
+        File gvcf_index = '~{sample}.g.vcf.gz.tbi'
         File resource_log = 'resource.log'
         File stats_report = '~{sample}.visual_report.html'
     }
