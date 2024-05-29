@@ -376,8 +376,8 @@ workflow Short_Variant_Pipeline {
             DOC_sampleSummary=depthOfCov.sampleSummary,
             DOC_sampleCumulativeCoverageProportions=depthOfCov.sampleCumulativeCoverageProportions,
             DOC_sampleGeneSummary=depthOfCov.sampleGeneSummary,
-            filtered_vcf=bgzip.filtered_vcf,
-            DV_stats_report=deep_variant.stats_report,
+            filtered_vcf=MergeVCFs.output_vcf,
+            #DV_stats_report=deep_variant.stats_report,
             sampleID=samplename
     }
 
@@ -1224,7 +1224,7 @@ task data_transfer_clinical {
         File DOC_sampleCumulativeCoverageProportions
         File DOC_sampleGeneSummary
         File filtered_vcf
-        File DV_stats_report
+        #File DV_stats_report
         String clinical_bucket_path
         String sampleID
     }
@@ -1235,8 +1235,8 @@ task data_transfer_clinical {
         gsutil -m cp ~{DOC_sampleSummary} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_summary.csv
         gsutil -m cp ~{DOC_sampleCumulativeCoverageProportions} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_cumulative_coverage_proportions.csv
         gsutil -m cp ~{DOC_sampleGeneSummary} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_gene_summary.csv
-        gsutil -m cp ~{filtered_vcf} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.filtered_callset.vcf.gz
-        gsutil -m cp ~{DV_stats_report} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.visual_report.html
+        gsutil -m cp ~{filtered_vcf} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.DV.filtered_callset.vcf.gz
+        #gsutil -m cp ~{DV_stats_report} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.visual_report.html
     
 
    >>>
