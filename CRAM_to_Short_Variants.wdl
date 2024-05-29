@@ -1224,7 +1224,6 @@ task data_transfer_clinical {
         File DOC_sampleCumulativeCoverageProportions
         File DOC_sampleGeneSummary
         File filtered_vcf
-        #File DV_stats_report
         String clinical_bucket_path
         String sampleID
     }
