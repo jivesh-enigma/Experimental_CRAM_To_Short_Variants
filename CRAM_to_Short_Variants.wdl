@@ -1236,7 +1236,7 @@ task data_transfer_clinical {
         gsutil -m cp ~{DOC_sampleCumulativeCoverageProportions} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_cumulative_coverage_proportions.csv
         gsutil -m cp ~{DOC_sampleGeneSummary} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_gene_summary.csv
         gsutil -m cp ~{filtered_vcf} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.DV.filtered_callset.vcf.gz
-        #gsutil -m cp ~{DV_stats_report} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.visual_report.html
+        # gsutil -m cp ~{DV_stats_report} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.visual_report.html
     
 
    >>>
