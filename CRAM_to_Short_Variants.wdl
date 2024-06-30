@@ -306,45 +306,68 @@ workflow Short_Variant_Pipeline {
             HDD=HDD
     }
     
-    call GATKVariantsToTable {
+    call ScatterVCF {
         input:
-            normalizedvcfFileGz=VTRecal.normalizedVCF,
-            refFasta=ref_fasta,
-            refFastaFai=ref_fasta_index,
-            refFastaDict=ref_fasta_dict,
-            samplesetId=samplename,
-            GATK_diskGb=GATK_diskGb,
-            GATK_memoryGb=GATK_memoryGb
+            samplename = samplename,
+            vcf = VTRecal.normalizedVCF,
+            vcf_index = VTRecal.normalizedVCF_index,
+            memoryGb = memoryGb,
+            preemptible = preemptible
+    }
+
+    scatter (chrvcf in ScatterVCF.scatteredvcfs) {
+
+        call GATKVariantsToTable {
+            input:
+                normalizedvcfFileGz=chrvcf,
+                refFasta=ref_fasta,
+                refFastaFai=ref_fasta_index,
+                refFastaDict=ref_fasta_dict,
+                samplesetId=basename(chrvcf, ".vcf.gz"),
+                GATK_diskGb=GATK_diskGb,
+                GATK_memoryGb=GATK_memoryGb
            
-    }
-    call vep_task {
-        input:
-       
-            refFasta=ref_fasta,
-            refFastaFai=ref_fasta_index,
-            refFastaDict=ref_fasta_dict,
-            samplesetId=samplename,
-            normalizedvcfFileGz=VTRecal.normalizedVCF,
-            bootDiskSizeGb_VEP=bootDiskSizeGb_VEP,
-            cpu_VEP=cpu_VEP,
-            diskGb_VEP=diskGb_VEP,
-            fork=fork,
-            memoryGb_VEP=memoryGb_VEP,
-            nearestGeneDistance=nearestGeneDistance
-    }
-    
-    call combineOutputFiles {
-        input:
-            samplesetId=samplename,
-            vepOutputFile=vep_task.VEP_Output,
-            gatkOutputFile=GATKVariantsToTable.GATK_output,
-            diskSpace=diskSpace
+        }
+
+        call vep_task {
+            input:
+        
+                refFasta=ref_fasta,
+                refFastaFai=ref_fasta_index,
+                refFastaDict=ref_fasta_dict,
+                samplesetId=basename(chrvcf, ".vcf.gz"),
+                normalizedvcfFileGz=chrvcf,
+                bootDiskSizeGb_VEP=bootDiskSizeGb_VEP,
+                cpu_VEP=cpu_VEP,
+                diskGb_VEP=diskGb_VEP,
+                fork=fork,
+                memoryGb_VEP=memoryGb_VEP,
+                nearestGeneDistance=nearestGeneDistance
+        }
+
+        call combineOutputFiles {
+            input:
+                samplesetId=basename(chrvcf, ".vcf.gz"),
+                vepOutputFile=vep_task.VEP_Output,
+                gatkOutputFile=GATKVariantsToTable.GATK_output,
+                diskSpace=diskSpace
             
+        }
+
+        File vep_genotypes_to_merge = combineOutputFiles.vepannotated_vcf
+    }
+
+    call Merge_VEP_Genotypes {
+        input:
+            input_veps = vep_genotypes_to_merge,
+            samplename = samplename,
+            memoryGb = memoryGb,
+            preemptible = preemptible
     }
 
     call VariantFilter {
         input: 
-            input_vcf=combineOutputFiles.vepannotated_vcf,
+            input_vcf=Merge_VEP_Genotypes.vepannotated_vcf_merged,
             master_gene_list=master_gene_list,
             GOF_gene_list=GOF_gene_list,
             samplename=samplename,
@@ -440,12 +463,19 @@ workflow Short_Variant_Pipeline {
         # Merged VCF:
         File merged_vcf = mergeVCF.merged_vcf
         File merged_vcf_index = mergeVCF.merged_vcf_index
+        # Variant Count
+        String variantcount = variantcount_vcf.variantcount
+        # VTRecal Normalized VCF
+        File normalizedVCF = VTRecal.normalizedVCF
+        File normalizedVCF_index = VTRecal.normalizedVCF_index
         # VEP:
-        File vepannotated_vcf= combineOutputFiles.vepannotated_vcf
+        File vepannotated_vcf= Merge_VEP_Genotypes.vepannotated_vcf_merged
         #variant_filtering:
-        File path_var_HQ= VariantFilter.path_var_HQ
-        File path_var_HQ_non_clinical= VariantFilter.path_var_HQ_non_clinical        
-        File path_var_LQ= VariantFilter.path_var_LQ
+        File path_var_HQ = VariantFilter.path_var_HQ
+        File path_var_HQ_non_clinical = VariantFilter.path_var_HQ_non_clinical        
+        File path_var_LQ = VariantFilter.path_var_LQ
+        File total_variant_count = VariantFilter.total_variant_count
+        File variants_PGx = VariantFilter.variants_PGx
         #IGV:
         File variants_HQ_IGV_snapshots = IGV_Snapshots.variants_HQ_IGV_snapshots
         File variants_HQ_non_clinical_IGV_snapshots = IGV_Snapshots.variants_HQ_non_clinical_IGV_snapshots
@@ -797,6 +827,42 @@ task VTRecal {
 }
 
 
+task ScatterVCF {
+    input {
+        String samplename
+        File vcf
+        File vcf_index
+        Int memoryGb
+        Int preemptible
+    }
+
+    Int scatterdisk = ceil(size(vcf,"GiB") * 4)
+
+    command <<<
+        mkdir chrvcf
+
+        for i in {1..22} X Y M
+        do
+            bcftools view ~{vcf} --regions chr${i} -o chrvcf/~{samplename}.chr${i}.vcf.gz -Oz
+        done
+
+        ls chrvcf
+
+    >>>
+
+    output {
+        Array[File] scatteredvcfs = glob("chrvcf/*.vcf.gz")
+    }
+
+    runtime {
+        docker: 'quay.io/biocontainers/bcftools:1.9--ha228f0b_3'
+        memory: "~{memoryGb} GB"
+        cpu: "1"
+        disks: "local-disk " + scatterdisk + " HDD"
+        preemptible: "~{preemptible}"
+    }
+}
+
 task vep_task {
     input {
     File normalizedvcfFileGz
@@ -917,7 +983,7 @@ task vep_task {
         echo "Number of VEP variants (grep -v # ~{samplesetId}.vep.txt | wc -l):"
         grep -v "#" ~{samplesetId}.vep.txt | wc -l
         
-        gzip ~{samplesetId}.vep.txt
+        # gzip ~{samplesetId}.vep.vcf
     >>>
     
     runtime {
@@ -930,86 +996,81 @@ task vep_task {
     }
 
     output {        
-        File VEP_Output="~{samplesetId}.vep.txt.gz"
+        File VEP_Output="~{samplesetId}.vep.txt"
         File VEP_Summary="~{samplesetId}.vep.txt_summary.txt"
     }
 }
 
-
 task GATKVariantsToTable {
-input {   
-    File normalizedvcfFileGz
-    File refFasta
-    File refFastaDict
-    File refFastaFai
-    String samplesetId
-    Int GATK_diskGb
-    Int GATK_memoryGb
- }   
-    command <<<      
-      echo "ls -lh"
-      ls -lh
-      ls ~{normalizedvcfFileGz}
-      
-      mv ~{normalizedvcfFileGz} vcfFile.vcf.gz
-      
-      echo "ls -lh"
-      ls -lh
-      
-      echo "bgzip decompressing vt recal VCF file"
-      bgzip --decompress vcfFile.vcf.gz
-    
-      echo "ls -lh"
-      ls -lh 
-      
-      echo "ls -lh vcfFile.vcf"
-      ls -lh vcfFile.vcf
-      
-      echo "########### Using GATK to extract variants into a table format (GRCh38)"
-      java -jar /usr/GenomeAnalysisTK.jar -R ~{refFasta} -T VariantsToTable \
-      -V vcfFile.vcf -o ~{samplesetId}.vt2_GATK_annotations.txt \
-      -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER -GF AD -GF DP  -GF GQ  -GF VAF -GF PL -GF GT --allowMissingData --showFiltered 
+    input {   
+        File normalizedvcfFileGz
+        File refFasta
+        File refFastaDict
+        File refFastaFai
+        String samplesetId
+        Int GATK_diskGb
+        Int GATK_memoryGb
+    }   
+        command <<<      
+        echo "ls -lh"
+        ls -lh
+        ls ~{normalizedvcfFileGz}
+        
+        mv ~{normalizedvcfFileGz} vcfFile.vcf.gz
+        
+        echo "ls -lh"
+        ls -lh
+        
+        echo "bgzip decompressing vt recal VCF file"
+        bgzip --decompress vcfFile.vcf.gz
+        
+        echo "ls -lh"
+        ls -lh 
+        
+        echo "ls -lh vcfFile.vcf"
+        ls -lh vcfFile.vcf
+        
+        echo "########### Using GATK to extract variants into a table format (GRCh38)"
+        java -jar /usr/GenomeAnalysisTK.jar -R ~{refFasta} -T VariantsToTable \
+        -V vcfFile.vcf -o ~{samplesetId}.vt2_GATK_annotations.txt \
+        -F CHROM -F POS -F ID -F REF -F ALT -F QUAL -F FILTER -GF AD -GF DP  -GF GQ  -GF VAF -GF PL -GF GT --allowMissingData --showFiltered 
 
-      echo '########### Done extracting relevant fields using GATK'
+        echo '########### Done extracting relevant fields using GATK'
 
-      # count the number of GATK variants:
-      echo "########### number of GATK variants: "
-      cat ~{samplesetId}.vt2_GATK_annotations.txt | wc -l
-      
-      gzip ~{samplesetId}.vt2_GATK_annotations.txt
-      
-      echo "ls -lh"
-      ls -lh
-    >>>
-    
-    output {
-        File GATK_output="~{samplesetId}.vt2_GATK_annotations.txt.gz"
-    }
-    
-    runtime {
-        docker: "vanallenlab/gatk3.7_with_htslib1.9:1.0"
-        memory: "~{GATK_memoryGb} GB"
-        cpu: "1"
-        disks: "local-disk ~{GATK_diskGb} HDD"
-        preemptible: 5
-    }
+        # count the number of GATK variants:
+        echo "########### number of GATK variants: "
+        cat ~{samplesetId}.vt2_GATK_annotations.txt | wc -l
+        
+        # gzip ~{samplesetId}.vt2_GATK_annotations.txt
+        
+        echo "ls -lh"
+        ls -lh
+        >>>
+        
+        output {
+            File GATK_output="~{samplesetId}.vt2_GATK_annotations.txt"
+        }
+        
+        runtime {
+            docker: "vanallenlab/gatk3.7_with_htslib1.9:1.0"
+            memory: "~{GATK_memoryGb} GB"
+            cpu: "1"
+            disks: "local-disk ~{GATK_diskGb} HDD"
+            preemptible: 5
+        }
 }
-
 
 task combineOutputFiles {
     input {
-    File vepOutputFile
-    File gatkOutputFile
-    String samplesetId
-    Int diskSpace
-}
+        File vepOutputFile
+        File gatkOutputFile
+        String samplesetId
+        Int diskSpace
+    }
 
     command <<<
-      cp ~{vepOutputFile} vepOutputFile.txt.gz
-      cp ~{gatkOutputFile} gatkOutputFile.txt.gz
-    
-      gunzip vepOutputFile.txt.gz
-      gunzip gatkOutputFile.txt.gz
+      cp ~{vepOutputFile} vepOutputFile.txt
+      cp ~{gatkOutputFile} gatkOutputFile.txt
     
       # remove the '#' from the first line before parsing:
       echo "########### removing the # sign from the first line of the VEP output file"
@@ -1018,18 +1079,17 @@ task combineOutputFiles {
       # remove the excess header part:
       grep "#" ~{samplesetId}_vt2_VEP_temp2.txt > ~{samplesetId}_VEP_annotation_list.txt
       grep -v "##" ~{samplesetId}_vt2_VEP_temp2.txt > ~{samplesetId}_vt2_VEP.txt
-      #tail -n +124 ~{samplesetId}_vt2_VEP_temp2.txt > ~{samplesetId}_vt2_VEP.txt
 
       # count the number of VEP variants:
       echo "########### number of VEP variants"
       cat ~{samplesetId}_vt2_VEP.txt | wc -l
       
       echo "########### Combining VEP  output files"
-      paste ~{samplesetId}_vt2_VEP.txt gatkOutputFile.txt | bgzip > ~{samplesetId}_vt2_VEP_Genotypes.txt.gz
+      paste ~{samplesetId}_vt2_VEP.txt gatkOutputFile.txt > ~{samplesetId}_vt2_VEP_Genotypes.txt
     >>>
     
     output {
-        File vepannotated_vcf="~{samplesetId}_vt2_VEP_Genotypes.txt.gz"
+        File vepannotated_vcf="~{samplesetId}_vt2_VEP_Genotypes.txt"
         File annotationsList="~{samplesetId}_VEP_annotation_list.txt"
     }
     
@@ -1039,6 +1099,87 @@ task combineOutputFiles {
         cpu            : "1"
         disks          : "local-disk ~{diskSpace} HDD"
         memory         : "10 GB"
+    }
+}
+
+task Merge_VEP_Genotypes {
+    input {
+        Array[File] input_veps
+        String samplename
+        Int memoryGb
+        Int preemptible
+    }
+
+    Int disk_size = ceil(size(input_veps,"GiB") * 4) + 10
+
+    command <<<
+        mkdir vep_files
+        # counter=1
+        
+        for file in $(cat ~{write_lines(input_veps)}); do
+            mv ${file} vep_files/
+        done
+        
+        ls vep_files
+
+        python3 <<CODE
+        import pandas as pd
+        import os
+        import re
+
+        # Set the directory containing the files
+        directory = 'vep_files'
+
+        # Define a function to extract the chromosome number from the filename
+        def extract_chr_number(filename):
+            # Match the pattern for chromosomes (numeric, X, Y, M)
+            match = re.search(r'\.chr(\d+|X|Y|M)_vt2_VEP_Genotypes\.txt', filename)
+            if match:
+                chr_str = match.group(1)
+                if chr_str == 'X':
+                    return 23
+                elif chr_str == 'Y':
+                    return 24
+                elif chr_str == 'M':
+                    return 25
+                else:
+                    return int(chr_str)
+            # Return infinity for unexpected formats to sort them at the end
+            return float('inf')
+
+        # List all files in the directory
+        files = [f for f in os.listdir(directory) if f.endswith('_vt2_VEP_Genotypes.txt')]
+
+        # Sort the files by chromosome number
+        files.sort(key=extract_chr_number)
+
+        # Initialize an empty list to hold the dataframes
+        dataframes = []
+
+        # Loop over the sorted files and read them into pandas dataframes
+        for file in files:
+            file_path = os.path.join(directory, file)
+            df = pd.read_csv(file_path, sep='\t', low_memory=False)
+            dataframes.append(df)
+
+        # Concatenate all dataframes
+        combined_df = pd.concat(dataframes, ignore_index=True)
+
+        # Save the combined dataframe to a new file
+        combined_df.to_csv('~{samplename}_vt2_VEP_Genotypes.txt', sep='\t', index=False)
+        CODE
+    >>>
+
+    output {
+        File vepannotated_vcf_merged = '~{samplename}_vt2_VEP_Genotypes.txt'
+    }
+
+    runtime {
+        docker: 'jiveshenigma/terra-pgs-env:v3'
+        memory: "~{memoryGb} GB"
+        cpu: "2"
+        disks: "local-disk " + disk_size + " HDD"
+        preemptible: "~{preemptible}"
     }
 }
 
