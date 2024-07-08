@@ -161,7 +161,7 @@ workflow Short_Variant_Pipeline {
 
     # Combine by-interval (g)VCFs into a single sample (g)VCF file
     
-    call Calling.MergeVCFs as MergeVCFs {
+    call Calling.MergeVCFs as DV_MergeVCFs {
         input:
             input_vcfs = vcfs_to_merge,
             input_vcfs_indexes = vcf_indices_to_merge,
@@ -169,7 +169,7 @@ workflow Short_Variant_Pipeline {
             preemptible_tries = runtime_preemptible
     }
 
-    call Calling.MergeVCFs as MergeGVCFs {
+    call Calling.MergeVCFs as DV_MergeGVCFs {
         input:
             input_vcfs_indexes = gvcf_indices_to_merge,
             input_vcfs = gvcfs_to_merge,
@@ -269,7 +269,7 @@ workflow Short_Variant_Pipeline {
 
     call mergeVCF {
         input:
-            deepvcf = MergeVCFs.output_vcf,
+            deepvcf = DV_MergeVCFs.output_vcf,
             gatkvcf = gatkVCF.gatk_vcf,
             gatkvcf_index = gatkVCF.gatk_vcf_index,
             sample_id = samplename,
@@ -399,7 +399,6 @@ workflow Short_Variant_Pipeline {
             DOC_sampleSummary=depthOfCov.sampleSummary,
             DOC_sampleCumulativeCoverageProportions=depthOfCov.sampleCumulativeCoverageProportions,
             DOC_sampleGeneSummary=depthOfCov.sampleGeneSummary,
-            short_variant_vcf=mergeVCF.merged_vcf,
             path_var_HQ=path_var_HQ,
             path_var_HQ_non_clinical=path_var_HQ_non_clinical,
             path_var_LQ=path_var_LQ,
@@ -434,12 +433,12 @@ workflow Short_Variant_Pipeline {
         File chrM_sampleCumulativeCoverageProportions = depthOfCov_chrM.sampleCumulativeCoverageProportions
         File chrM_sampleCumulativeCoverageCounts = depthOfCov_chrM.sampleCumulativeCoverageCounts
         #DV:
-        File DV_gvcf = MergeGVCFs.output_vcf
-        File DV_gvcf_index = MergeGVCFs.output_vcf_index
+        File DV_gvcf = DV_MergeGVCFs.output_vcf
+        File DV_gvcf_index = DV_MergeGVCFs.output_vcf_index
         # File DV_resource_log = deep_variant.resource_log
         # File DV_stats_report = deep_variant.stats_report
-        File DV_filtered_vcf = MergeVCFs.output_vcf
-        File DV_filtered_vcf_index = MergeVCFs.output_vcf_index
+        File DV_filtered_vcf = DV_MergeVCFs.output_vcf
+        File DV_filtered_vcf_index = DV_MergeVCFs.output_vcf_index
         #DRAGEN:
         File dragen_vcf_summary_metrics = DragenVCF.vcf_summary_metrics
         File dragen_vcf_detail_metrics = DragenVCF.vcf_detail_metrics
@@ -1175,10 +1174,13 @@ task Merge_VEP_Genotypes {
         # Save the combined dataframe to a new file
         combined_df.to_csv('~{samplename}_vt2_VEP_Genotypes.txt', sep='\t', index=False)
         CODE
+
+        # Compressing the output
+        gzip ~{samplename}_vt2_VEP_Genotypes.txt
     >>>
 
     output {
-        File vepannotated_vcf_merged = '~{samplename}_vt2_VEP_Genotypes.txt'
+        File vepannotated_vcf_merged = '~{samplename}_vt2_VEP_Genotypes.txt.gz'
     }
 
     runtime {
@@ -1371,7 +1373,6 @@ task data_transfer_clinical {
         File DOC_sampleSummary
         File DOC_sampleCumulativeCoverageProportions
         File DOC_sampleGeneSummary
-        File short_variant_vcf
         File path_var_HQ
         File path_var_HQ_non_clinical
         File path_var_LQ
@@ -1389,7 +1390,6 @@ task data_transfer_clinical {
         gsutil -m cp ~{DOC_sampleSummary} ~{clinical_bucket_path}/~{sampleID}.sample_summary.csv
         gsutil -m cp ~{DOC_sampleCumulativeCoverageProportions} ~{clinical_bucket_path}/~{sampleID}.sample_cumulative_coverage_proportions.csv
         gsutil -m cp ~{DOC_sampleGeneSummary} ~{clinical_bucket_path}/~{sampleID}.sample_gene_summary.csv
-        gsutil -m cp ~{short_variant_vcf} ~{clinical_bucket_path}/~{sampleID}.merged.vcf.gz
         gsutil -m cp ~{path_var_HQ} ~{clinical_bucket_path}/~{sampleID}.pathogenic_variants_all_high_quality.csv
         gsutil -m cp ~{path_var_HQ_non_clinical} ~{clinical_bucket_path}/~{sampleID}.pathogenic_variants_all_high_quality_non_clinical.csv
         gsutil -m cp ~{path_var_LQ} ~{clinical_bucket_path}/~{sampleID}.pathogenic_variants_all_low_quality.csv
@@ -1408,7 +1408,7 @@ task data_transfer_clinical {
         docker: "google/cloud-sdk"
         memory: "1GB"
         disks: 'local-disk 1 HDD' 
-        preemptible: 3
+        preemptible: 5
     }
 }
 
@@ -1435,7 +1435,7 @@ task addVAF {
     runtime {
         memory: '1 GB'
         disks: 'local-disk ~{runtime_disk} HDD'
-        preemptible: 3
+        preemptible: 5
         docker: 'jiveshenigma/htslib-samtools-bcftools:v1'
     }
 }
@@ -1471,7 +1471,7 @@ task gatkVCF {
     runtime {
         memory: '1 GB'
         disks: 'local-disk ~{runtime_disk} HDD'
-        preemptible: 3
+        preemptible: 5
         docker: 'jiveshenigma/htslib-samtools-bcftools:v1'
     }
 }
@@ -1496,22 +1496,22 @@ task mergeVCF {
         bcftools index -t ~{sample_id}.dv.vcf.gz
 
         # Merging the DV vcf and GATK VCF
-        bcftools merge ~{sample_id}.dv.vcf.gz ~{gatkvcf} -Oz -o ~{sample_id}.merged.vcf.gz
+        bcftools merge ~{sample_id}.dv.vcf.gz ~{gatkvcf} -Oz -o ~{sample_id}.short_variants_merged.vcf.gz
 
         # index for merged vcf
-        bcftools index -t ~{sample_id}.merged.vcf.gz
+        bcftools index -t ~{sample_id}.short_variants_merged.vcf.gz
 
     >>>
 
     output {
-        File merged_vcf = "~{sample_id}.merged.vcf.gz"
-        File merged_vcf_index = "~{sample_id}.merged.vcf.gz.tbi"
+        File merged_vcf = "~{sample_id}.short_variants_merged.vcf.gz"
+        File merged_vcf_index = "~{sample_id}.short_variants_merged.vcf.gz.tbi"
     }
 
     runtime {
         memory: '1 GB'
         disks: 'local-disk ~{runtime_disk} HDD'
-        preemptible: 3
+        preemptible: 5
         docker: 'jiveshenigma/htslib-samtools-bcftools:v1'
     }
     
