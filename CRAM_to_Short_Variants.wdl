@@ -361,7 +361,7 @@ workflow Short_Variant_Pipeline {
         input:
             input_veps = vep_genotypes_to_merge,
             samplename = samplename,
-            memoryGb = memoryGb,
+            memoryGb = memoryGb_VEP,
             preemptible = preemptible
     }
 
@@ -399,8 +399,15 @@ workflow Short_Variant_Pipeline {
             DOC_sampleSummary=depthOfCov.sampleSummary,
             DOC_sampleCumulativeCoverageProportions=depthOfCov.sampleCumulativeCoverageProportions,
             DOC_sampleGeneSummary=depthOfCov.sampleGeneSummary,
-            filtered_vcf=MergeVCFs.output_vcf,
-            #DV_stats_report=deep_variant.stats_report,
+            short_variant_vcf=mergeVCF.merged_vcf,
+            path_var_HQ=path_var_HQ,
+            path_var_HQ_non_clinical=path_var_HQ_non_clinical,
+            path_var_LQ=path_var_LQ,
+            total_variant_count=total_variant_count,
+            variants_PGx=variants_PGx,
+            variants_HQ_IGV_snapshots=variants_HQ_IGV_snapshots,
+            variants_HQ_non_clinical_IGV_snapshots=variants_HQ_non_clinical_IGV_snapshots,
+            variants_LQ_IGV_snapshots=variants_LQ_IGV_snapshots,
             sampleID=samplename
     }
 
@@ -1364,20 +1371,33 @@ task data_transfer_clinical {
         File DOC_sampleSummary
         File DOC_sampleCumulativeCoverageProportions
         File DOC_sampleGeneSummary
-        File filtered_vcf
+        File short_variant_vcf
+        File path_var_HQ
+        File path_var_HQ_non_clinical
+        File path_var_LQ
+        File total_variant_count
+        File variants_PGx
+        File variants_HQ_IGV_snapshots
+        File variants_HQ_non_clinical_IGV_snapshots
+        File variants_LQ_IGV_snapshots
         String clinical_bucket_path
         String sampleID
     }
 
     command <<<
     
-
-        gsutil -m cp ~{DOC_sampleSummary} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_summary.csv
-        gsutil -m cp ~{DOC_sampleCumulativeCoverageProportions} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_cumulative_coverage_proportions.csv
-        gsutil -m cp ~{DOC_sampleGeneSummary} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.sample_gene_summary.csv
-        gsutil -m cp ~{filtered_vcf} ~{clinical_bucket_path}/~{sampleID}/~{sampleID}.DV.filtered_callset.vcf.gz
-        
-    
+        gsutil -m cp ~{DOC_sampleSummary} ~{clinical_bucket_path}/~{sampleID}.sample_summary.csv
+        gsutil -m cp ~{DOC_sampleCumulativeCoverageProportions} ~{clinical_bucket_path}/~{sampleID}.sample_cumulative_coverage_proportions.csv
+        gsutil -m cp ~{DOC_sampleGeneSummary} ~{clinical_bucket_path}/~{sampleID}.sample_gene_summary.csv
+        gsutil -m cp ~{short_variant_vcf} ~{clinical_bucket_path}/~{sampleID}.merged.vcf.gz
+        gsutil -m cp ~{path_var_HQ} ~{clinical_bucket_path}/~{sampleID}.pathogenic_variants_all_high_quality.csv
+        gsutil -m cp ~{path_var_HQ_non_clinical} ~{clinical_bucket_path}/~{sampleID}.pathogenic_variants_all_high_quality_non_clinical.csv
+        gsutil -m cp ~{path_var_LQ} ~{clinical_bucket_path}/~{sampleID}.pathogenic_variants_all_low_quality.csv
+        gsutil -m cp ~{total_variant_count} ~{clinical_bucket_path}/~{sampleID}.total_variant_count.csv
+        gsutil -m cp ~{variants_PGx} ~{clinical_bucket_path}/~{sampleID}.variants_PGx.csv
+        gsutil -m cp ~{variants_HQ_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.IGV_Snapshots_HQ.tar.gz
+        gsutil -m cp ~{variants_HQ_non_clinical_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.IGV_Snapshots_HQ_non_clinical.tar.gz
+        gsutil -m cp ~{variants_LQ_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.IGV_Snapshots_LQ.tar.gz
 
    >>>
 
