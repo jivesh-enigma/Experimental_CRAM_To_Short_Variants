@@ -1390,14 +1390,14 @@ task data_transfer_clinical {
         gsutil -m cp ~{DOC_sampleSummary} ~{clinical_bucket_path}/~{sampleID}.sample_summary.csv
         gsutil -m cp ~{DOC_sampleCumulativeCoverageProportions} ~{clinical_bucket_path}/~{sampleID}.sample_cumulative_coverage_proportions.csv
         gsutil -m cp ~{DOC_sampleGeneSummary} ~{clinical_bucket_path}/~{sampleID}.sample_gene_summary.csv
-        gsutil -m cp ~{path_var_HQ} ~{clinical_bucket_path}/~{sampleID}.pathogenic_variants_all_high_quality.csv
-        gsutil -m cp ~{path_var_HQ_non_clinical} ~{clinical_bucket_path}/~{sampleID}.pathogenic_variants_all_high_quality_non_clinical.csv
-        gsutil -m cp ~{path_var_LQ} ~{clinical_bucket_path}/~{sampleID}.pathogenic_variants_all_low_quality.csv
+        gsutil -m cp ~{path_var_HQ} ~{clinical_bucket_path}/~{sampleID}.path_var_HQ.csv
+        gsutil -m cp ~{path_var_HQ_non_clinical} ~{clinical_bucket_path}/~{sampleID}.path_var_HQ_non_clinical.csv
+        gsutil -m cp ~{path_var_LQ} ~{clinical_bucket_path}/~{sampleID}.path_var_LQ.csv
         gsutil -m cp ~{total_variant_count} ~{clinical_bucket_path}/~{sampleID}.total_variant_count.csv
         gsutil -m cp ~{variants_PGx} ~{clinical_bucket_path}/~{sampleID}.variants_PGx.csv
-        gsutil -m cp ~{variants_HQ_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.IGV_Snapshots_HQ.tar.gz
-        gsutil -m cp ~{variants_HQ_non_clinical_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.IGV_Snapshots_HQ_non_clinical.tar.gz
-        gsutil -m cp ~{variants_LQ_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.IGV_Snapshots_LQ.tar.gz
+        gsutil -m cp ~{variants_HQ_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.variants_HQ_IGV_snapshots.tar.gz
+        gsutil -m cp ~{variants_HQ_non_clinical_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.variants_HQ_non_clinical_IGV_snapshots.tar.gz
+        gsutil -m cp ~{variants_LQ_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.variants_LQ_IGV_snapshots.tar.gz
 
    >>>
 
