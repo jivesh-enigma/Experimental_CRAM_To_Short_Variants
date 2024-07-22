@@ -1,7 +1,7 @@
 version 1.0
 import "https://raw.githubusercontent.com/broadinstitute/warp/develop/tasks/broad/GermlineVariantDiscovery.wdl" as Calling
 import "https://raw.githubusercontent.com/broadinstitute/warp/develop/tasks/broad/Utilities.wdl" as Utils
-import "https://raw.githubusercontent.com/broadinstitute/warp/develop/pipelines/broad/dna_seq/germline/variant_calling/VariantCalling.wdl" as DragenCaller
+import "https://github.com/broadinstitute/warp/blob/WholeGenomeGermlineSingleSample_v3.1.21/pipelines/broad/dna_seq/germline/variant_calling/VariantCalling.wdl" as DragenCaller
 import "https://raw.githubusercontent.com/jivesh-enigma/Experimental_CRAM_To_Short_Variants/main/MitochondriaPipeline.wdl" as MitochondrialPipeline
 
 workflow Short_Variant_Pipeline {
