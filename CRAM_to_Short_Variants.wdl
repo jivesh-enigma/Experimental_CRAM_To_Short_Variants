@@ -912,8 +912,8 @@ task vep_task {
    
     
      #   CLINVAR
-    File clinvar="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/clinvar_20231217.vcf.gz"
-    File clinvar_index="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/clinvar_20231217.vcf.gz.tbi"
+    File clinvar="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/clinvar_20240805.vcf.gz"
+    File clinvar_index="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/clinvar_20240805.vcf.gz.tbi"
 }
     
     
