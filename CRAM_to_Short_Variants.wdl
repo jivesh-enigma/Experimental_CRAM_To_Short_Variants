@@ -976,7 +976,7 @@ task vep_task {
         --total_length --numbers --domains --pick --variant_class --hgvs --hgvsg --ccds  --fork ~{fork} \
         --custom ~{scap},scap_v1.0,vcf,exact,0,Allele_region,rawscore,sensscore,rawscore_dom,sensscore_dom,rawscore_rec,senscore_rec \
         --plugin dbNSFP,/opt/vep/.vep/Plugins/data/dbNSFPv4.2a_modified_header.gz,hg19_chr,hg19_pos,FATHMM_score,FATHMM_pred,PROVEAN_score,MetaSVM_score,MetaLR_score,MetaLR_pred,MetaRNN_score,MetaRNN_pred,M-CAP_score,M-CAP_pred,REVEL_score,MutPred_score,MVP_score,Aloft_pred,LINSIGHT,CADD_raw,GenoCanyon_score,integrated_fitCons_score,Interpro_domain,gnomAD_genomes_MID_AC,gnomAD_genomes_MID_AN,gnomAD_genomes_MID_AF,gnomAD_genomes_MID_nhomalt \
-        --custom ~{clinvar},ClinVar_updated_2023Feb,vcf,exact,0,ID,ALLELEID,CLNDN,CLNDISDB,CLNHGVS,CLNREVSTAT,CLNSIG,CLNSIGCONF,CLNVI,DBVARID 
+        --custom ~{clinvar},ClinVar_updated_2024Aug,vcf,exact,0,ID,ALLELEID,CLNDN,CLNDISDB,CLNHGVS,CLNREVSTAT,CLNSIG,CLNSIGCONF,CLNVI,DBVARID 
     
         
         
