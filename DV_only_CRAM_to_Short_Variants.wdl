@@ -868,9 +868,22 @@ task ScatterVCF {
     command <<<
         mkdir chrvcf
 
+        # for i in {1..22} X Y
+        # do
+        #     bcftools view ~{vcf} --regions chr${i} -o chrvcf/~{samplename}.chr${i}.vcf.gz -Oz
+        # done
+
         for i in {1..22} X Y
         do
-            bcftools view ~{vcf} --regions chr${i} -o chrvcf/~{samplename}.chr${i}.vcf.gz -Oz
+            # Use bcftools to extract chromosome-specific data
+            bcftools view ~{vcf} --regions chr${i} -Oz -o temp.chr${i}.vcf.gz
+            
+            # Check if the VCF is not empty
+            if bcftools view -H temp.chr${i}.vcf.gz | grep -q '.'; then
+                mv temp.chr${i}.vcf.gz chrvcf/~{samplename}.chr${i}.vcf.gz
+            else
+                rm temp.chr${i}.vcf.gz
+            fi
         done
 
         ls chrvcf
