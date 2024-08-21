@@ -50,6 +50,21 @@ workflow Short_Variant_Pipeline {
         Int memoryGb_VEP
         Int nearestGeneDistance
 
+        #dbnSFP
+        File dbNSFPData
+        File dbNSFPDataTbi
+        File dbNSFPPlugin
+        File dbNSFPReadme
+
+        #   S-CAP
+        File scap
+        File scap_index
+
+        #   CLINVAR
+        File clinvar_vcf
+        File clinvar_index
+        String clinvar_name
+
         # Set DRAGEN-related arguments according to the "functional equivalence" mode
         Int dragen_scatter_count = 10
         Boolean run_dragen_mode_variant_calling_ = true
@@ -331,7 +346,15 @@ workflow Short_Variant_Pipeline {
 
         call vep_task {
             input:
-        
+                dbNSFPData = dbNSFPData,
+                dbNSFPDataTbi = dbNSFPDataTbi,
+                dbNSFPPlugin = dbNSFPPlugin,
+                dbNSFPReadme = dbNSFPReadme,
+                scap = scap,
+                scap_index = scap_index,
+                clinvar = clinvar_vcf,
+                clinvar_index = clinvar_index,
+                clinvar_name = clinvar_name,
                 refFasta=ref_fasta,
                 refFastaFai=ref_fasta_index,
                 refFastaDict=ref_fasta_dict,
@@ -890,20 +913,35 @@ task vep_task {
     File speciesCacheTarGzFile="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/homo_sapiens_merged_vep_109_GRCh38.tar.gz"
     String speciesCacheLabel="homo_sapiens_merged"
     String speciesCacheParameter="--merged"
+
+    #dbnSFP
+    File dbNSFPData
+    File dbNSFPDataTbi
+    File dbNSFPPlugin
+    File dbNSFPReadme
+
+    #   S-CAP
+    File scap
+    File scap_index
+
+    #   CLINVAR
+    File clinvar
+    File clinvar_index
+    String clinvar_name
     
     #dbnSFP
-    File dbNSFPData="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/dbNSFPv4.2a/dbNSFPv4.2a_modified_header.gz"
-    File dbNSFPDataTbi="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/dbNSFPv4.2a/dbNSFPv4.2a_modified_header.gz.tbi"
-    File dbNSFPPlugin="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/dbNSFPv4.2a/dbNSFP.pm"
-    File dbNSFPReadme="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/dbNSFPv4.2a/dbNSFP4.1a.readme.txt"
+    # File dbNSFPData="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/dbNSFPv4.2a/dbNSFPv4.2a_modified_header.gz"
+    # File dbNSFPDataTbi="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/dbNSFPv4.2a/dbNSFPv4.2a_modified_header.gz.tbi"
+    # File dbNSFPPlugin="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/dbNSFPv4.2a/dbNSFP.pm"
+    # File dbNSFPReadme="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/dbNSFPv4.2a/dbNSFP4.1a.readme.txt"
     
     #   MCAP
     #File mcap="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch37/annotation_files/VEP_files/mcap_v1.4_modified.vcf.gz"
     #File mcap_index="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch37/annotation_files/VEP_files/mcap_v1.4_modified.vcf.gz.tbi"
 
     #   S-CAP
-    File scap="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/scap_COMBINED_v1.0_modified.vcf.gz"
-    File scap_index="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/scap_COMBINED_v1.0_modified.vcf.gz.tbi"
+    # File scap="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/scap_COMBINED_v1.0_modified.vcf.gz"
+    # File scap_index="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/scap_COMBINED_v1.0_modified.vcf.gz.tbi"
     
     #gnomAD genome
     #File gnomAD_genome="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch37/annotation_files/VEP_files/gnomad.genomes.r2.0.1.sites.noVEP.vcf.gz"
@@ -911,9 +949,9 @@ task vep_task {
     
    
     
-     #   CLINVAR
-    File clinvar="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/clinvar_20240805.vcf.gz"
-    File clinvar_index="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/clinvar_20240805.vcf.gz.tbi"
+    #  CLINVAR
+    # File clinvar="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/clinvar_20240805.vcf.gz"
+    # File clinvar_index="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/clinvar_20240805.vcf.gz.tbi"
 }
     
     
@@ -976,7 +1014,7 @@ task vep_task {
         --total_length --numbers --domains --pick --variant_class --hgvs --hgvsg --ccds  --fork ~{fork} \
         --custom ~{scap},scap_v1.0,vcf,exact,0,Allele_region,rawscore,sensscore,rawscore_dom,sensscore_dom,rawscore_rec,senscore_rec \
         --plugin dbNSFP,/opt/vep/.vep/Plugins/data/dbNSFPv4.2a_modified_header.gz,hg19_chr,hg19_pos,FATHMM_score,FATHMM_pred,PROVEAN_score,MetaSVM_score,MetaLR_score,MetaLR_pred,MetaRNN_score,MetaRNN_pred,M-CAP_score,M-CAP_pred,REVEL_score,MutPred_score,MVP_score,Aloft_pred,LINSIGHT,CADD_raw,GenoCanyon_score,integrated_fitCons_score,Interpro_domain,gnomAD_genomes_MID_AC,gnomAD_genomes_MID_AN,gnomAD_genomes_MID_AF,gnomAD_genomes_MID_nhomalt \
-        --custom ~{clinvar},ClinVar_updated_2024Aug,vcf,exact,0,ID,ALLELEID,CLNDN,CLNDISDB,CLNHGVS,CLNREVSTAT,CLNSIG,CLNSIGCONF,CLNVI,DBVARID 
+        --custom ~{clinvar},~{clinvar_name},vcf,exact,0,ID,ALLELEID,CLNDN,CLNDISDB,CLNHGVS,CLNREVSTAT,CLNSIG,CLNSIGCONF,CLNVI,DBVARID 
     
         
         
