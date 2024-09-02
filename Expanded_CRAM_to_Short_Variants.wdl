@@ -1269,7 +1269,7 @@ task VariantFilter {
    runtime { 
      docker : "lbwang/rocker-genome"
      bootDiskSizeGb: "~{boot_disk_gb}"
-     preemtible : 0
+     preemptible : 0
      disks: "local-disk ~{output_disk_gb} HDD"
      cpu: "~{cpu_cores}"
      memory: "~{ram_gb}GB"
@@ -1285,11 +1285,11 @@ task VariantFilter {
         File all_variants_carrier_genes="~{samplename}.all_variants_carrier_genes.csv.gz"
         File total_variant_count="~{samplename}.total_variant_count.csv"
         File variants_PGx="${samplename}.variants_PGx.csv"
-        File variants_PGx_IGV_bed = "~{samplename}.variants_PGx_IGV.bed"
+        File variants_PGx_IGV_bed = "~{samplename}_variants_PGx_IGV.bed"
         File clinvar_variants_conflicting = "~{samplename}.clinvar_variants_conflicting.csv"
         File rare_homozygous_variants = "~{samplename}.rare_homozygous_variants.csv"
-        File clinvar_variants_conflicting_IGV_bed = "~{samplename}.clinvar_variants_conflicting_IGV.bed"
-        File rare_homozygous_variants_IGV_bed = "~{samplename}.rare_homozygous_variants_IGV.bed"
+        File clinvar_variants_conflicting_IGV_bed = "~{samplename}_clinvar_variants_conflicting_IGV.bed"
+        File rare_homozygous_variants_IGV_bed = "~{samplename}_rare_homozygous_variants_IGV.bed"
         File vep_coding_variants = "~{samplename}.vt2_VEP_Genotypes_focused.txt.gz"
        }  
 }
