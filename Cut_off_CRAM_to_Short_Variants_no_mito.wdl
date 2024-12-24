@@ -873,7 +873,7 @@ task ScatterVCF {
     command <<<
         mkdir chrvcf
 
-        for i in {1..22} X Y M
+        for i in {1..22} X Y
         do
             bcftools view ~{vcf} --regions chr${i} -o chrvcf/~{samplename}.chr${i}.vcf.gz -Oz
         done
