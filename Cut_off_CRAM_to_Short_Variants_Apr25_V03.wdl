@@ -1041,7 +1041,7 @@ task vep_task {
     
     runtime {
         docker: "ensemblorg/ensembl-vep:release_109.2"    
-        bootDiskSizeGb : ~{bootDiskSizeGb_VEP}
+        bootDiskSizeGb : bootDiskSizeGb_VEP
         preemptible    : 5
         cpu            : "~{cpu_VEP}"
         disks          : "local-disk ~{diskGb_VEP} SSD"
@@ -1263,7 +1263,7 @@ task VariantFilter {
    
    runtime { 
      docker : "lbwang/rocker-genome"
-     bootDiskSizeGb: ~{boot_disk_gb}
+     bootDiskSizeGb: boot_disk_gb
      preemptible : 0
      disks: "local-disk ~{output_disk_gb} HDD"
      cpu: "~{cpu_cores}"
