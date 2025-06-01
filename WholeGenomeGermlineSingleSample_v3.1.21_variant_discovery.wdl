@@ -53,7 +53,8 @@ workflow VariantCalling {
         ref_dict = ref_dict,
         alignment = input_bam,
         alignment_index = input_bam_index,
-        str_table_file = select_first([ref_str])
+        str_table_file = select_first([ref_str]),
+        memory_mb = 16000
     }
   }
 
