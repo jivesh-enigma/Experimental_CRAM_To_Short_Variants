@@ -913,13 +913,15 @@ task vep_task {
     File refFasta
     File refFastaDict
     File refFastaFai
-    Int bootDiskSizeGb_VEP
-    Int cpu_VEP
-    Int diskGb_VEP
-    Int memoryGb_VEP
+    Int bootDiskSizeGb_VEP = 100
+    Int cpu_VEP = 8
+    Int diskGb_VEP = 100
+    Int memoryGb_VEP = 16
+    Int preemptible_VEP = 1
+    String docker_VEP = "ensemblorg/ensembl-vep:release_114.2"
     
     # Cache files
-    File speciesCacheTarGzFile="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/homo_sapiens_merged_vep_109_GRCh38.tar.gz"
+    File speciesCacheTarGzFile="gs://fc-268e3277-9518-4b28-9f5e-1664c9c5c093/ch38/annotation_files/VEP_files/homo_sapiens_merged_vep_114_GRCh38.tar.gz"
     String speciesCacheLabel="homo_sapiens_merged"
     String speciesCacheParameter="--merged"
 
@@ -1040,10 +1042,10 @@ task vep_task {
     >>>
     
     runtime {
-        docker: "ensemblorg/ensembl-vep:release_109.2"    
+        docker: "~{docker_VEP}"    
         bootDiskSizeGb : bootDiskSizeGb_VEP
-        preemptible    : 1
-        cpu            : "~{cpu_VEP}"
+        preemptible    : preemptible_VEP
+        cpu            : cpu_VEP
         disks          : "local-disk ~{diskGb_VEP} SSD"
         memory         : "~{memoryGb_VEP} GB"
     }
@@ -1119,6 +1121,8 @@ task combineOutputFiles {
         File gatkOutputFile
         String samplesetId
         Int diskSpace
+
+        String docker = "ensemblorg/ensembl-vep:release_114.2"
     }
 
     command <<<
@@ -1147,7 +1151,7 @@ task combineOutputFiles {
     }
     
     runtime {
-        docker: "ensemblorg/ensembl-vep:release_109.2"    
+        docker: docker    
         preemptible    : 1
         cpu            : "1"
         disks          : "local-disk ~{diskSpace} HDD"
