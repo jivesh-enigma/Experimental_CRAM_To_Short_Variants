@@ -6,6 +6,8 @@ import "https://raw.githubusercontent.com/jivesh-enigma/Experimental_CRAM_To_Sho
 
 workflow Short_Variant_Pipeline {
     input {
+        File cram_or_bam_md5
+
         File ref_fasta
         File DoC_interval_list
         File ref_fasta_index
@@ -428,6 +430,7 @@ workflow Short_Variant_Pipeline {
     call data_transfer_clinical{
         input:
             clinical_bucket_path=clinical_bucket_path,
+            cram_or_bam_md5 = cram_or_bam_md5,
             path_var_HQ=path_var_HQ,
             path_var_HQ_non_clinical=path_var_HQ_non_clinical,
             path_var_LQ=path_var_LQ,
@@ -1529,6 +1532,7 @@ task IGV_Snapshots {
 
 task data_transfer_clinical {
     input {
+        File cram_or_bam_md5
         File path_var_HQ
         File path_var_HQ_non_clinical
         File path_var_LQ
@@ -1560,6 +1564,7 @@ task data_transfer_clinical {
         gsutil -m cp ~{variants_PGx_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.IGV_Snapshots_PGx.tar.gz
         gsutil -m cp ~{clinvar_variants_conflicting_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.IGV_Snapshots_clinvar_variants_conflicting.tar.gz
         gsutil -m cp ~{rare_homozygous_variants_IGV_snapshots} ~{clinical_bucket_path}/~{sampleID}.IGV_Snapshots_rare_homozygous_variants.tar.gz
+        gsutil -m cp ~{cram_or_bam_md5} ~{clinical_bucket_path}/
 
    >>>
 
