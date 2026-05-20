@@ -13,7 +13,7 @@ workflow FastqToBam {
     File reference_fasta
     File reference_fasta_index
     File reference_dict
-    File reference_alt
+    File? reference_alt
     File reference_sa 
     File reference_ann
     File reference_bwt
@@ -84,54 +84,11 @@ workflow FastqToBam {
   Array[Pair[File, File]] sharded_fq_pairs = zip(sharded_fq1, sharded_fq2)
 
   # Align paired fastqs with BWA
-  # scatter ( fq_pair in sharded_fq_pairs ) {
-  #   call Bwa as AlignPairs {
-  #     input:
-  #       input_fastqs = [fq_pair.left, fq_pair.right],
-  #       output_basename = sample_name + "." + basename(fq_pair.left, ".fq.gz"),
-  #       ref_fasta = reference_fasta,
-  #       ref_fasta_index = reference_fasta_index,
-  #       ref_dict = reference_dict,
-  #       ref_alt = reference_alt,
-  #       ref_amb = reference_amb,
-  #       ref_ann = reference_ann,
-  #       ref_bwt = reference_bwt,
-  #       ref_pac = reference_pac,
-  #       ref_sa = reference_sa,
-  #       mem_gb = bwa_mem_gb,
-  #       num_cpu = bwa_num_cpu,
-  #       disk_size = bwa_disk_size,
-  #       docker = gotc_docker
-  #   }
-  # }
-
-  # scatter ( fastq in fq_singles ) {
-  #   call Bwa as AlignSingles {
-  #     input:
-  #       input_fastqs = [fastq],
-  #       output_basename = sample_name,
-  #       ref_fasta = reference_fasta,
-  #       ref_fasta_index = reference_fasta_index,
-  #       ref_dict = reference_dict,
-  #       ref_alt = reference_alt,
-  #       ref_amb = reference_amb,
-  #       ref_ann = reference_ann,
-  #       ref_bwt = reference_bwt,
-  #       ref_pac = reference_pac,
-  #       ref_sa = reference_sa,
-  #       mem_gb = bwa_mem_gb,
-  #       num_cpu = bwa_num_cpu,
-  #       disk_size = bwa_disk_size,
-  #       docker = gotc_docker
-  #   }
-  # }
-
-  # Align paired fastqs with BWA
   scatter ( fq_pair in sharded_fq_pairs ) {
-    call BwaMem2 as AlignPairs {
+    call Bwa as AlignPairs {
       input:
-        sample_id = sample_name + "." + basename(fq_pair.left, ".fq.gz"),
         input_fastqs = [fq_pair.left, fq_pair.right],
+        output_basename = sample_name + "." + basename(fq_pair.left, ".fq.gz"),
         ref_fasta = reference_fasta,
         ref_fasta_index = reference_fasta_index,
         ref_dict = reference_dict,
@@ -140,14 +97,38 @@ workflow FastqToBam {
         ref_ann = reference_ann,
         ref_bwt = reference_bwt,
         ref_pac = reference_pac,
-        ref_sa = reference_sa
+        ref_sa = reference_sa,
+        mem_gb = bwa_mem_gb,
+        num_cpu = bwa_num_cpu,
+        disk_size = bwa_disk_size,
+        docker = gotc_docker
+    }
+  }
+
+  scatter ( fastq in fq_singles ) {
+    call Bwa as AlignSingles {
+      input:
+        input_fastqs = [fastq],
+        output_basename = sample_name,
+        ref_fasta = reference_fasta,
+        ref_fasta_index = reference_fasta_index,
+        ref_dict = reference_dict,
+        ref_alt = reference_alt,
+        ref_amb = reference_amb,
+        ref_ann = reference_ann,
+        ref_bwt = reference_bwt,
+        ref_pac = reference_pac,
+        ref_sa = reference_sa,
+        mem_gb = bwa_mem_gb,
+        num_cpu = bwa_num_cpu,
+        disk_size = bwa_disk_size,
+        docker = gotc_docker
     }
   }
 
   output {
     # Merge BAMs, mark duplicates
-    # Array[File] bams_for_gatk = flatten([AlignPairs.output_bam, AlignSingles.output_bam])
-    Array[File] bams_for_gatk = flatten([AlignPairs.output_bam])
+    Array[File] bams_for_gatk = flatten([AlignPairs.output_bam, AlignSingles.output_bam])
   }
 }
 
@@ -302,63 +283,5 @@ task Bwa {
     memory: "~{mem_gb} GiB"
     cpu: num_cpu
     disks: "local-disk " + select_first([disk_size, default_disk_size]) + " HDD"
-  }
-}
-
-task BwaMem2 {
-  input {
-    String sample_id
-    Array[File] input_fastqs
-    Int num_cpu = 16
-    Int input_bases = 100000000
-
-    File ref_fasta
-    File ref_fasta_index
-    File ref_dict
-    File ref_alt
-    File ref_amb
-    File ref_ann
-    File ref_bwt
-    File ref_pac
-    File ref_sa
-
-    String read_group_id = "1"
-    String library = "ADEPT-LINEAR"
-    String platform = "ELEMENT"
-    String platform_unit = "AVITI"
-
-    String docker_image = "ghcr.io/uclahs-cds/bwa-mem2:2.3_samtools-1.17"
-    Int disk_factor = 2
-    Int disk_gb = ceil(size(input_fastqs, "GB") + size(ref_fasta, "GB")) * disk_factor + 10
-    Int ram_gb = 64
-    Int preemptible = 1
-  }
-
-  command <<<
-    # Exit on error, unset vars, show commands, fail on any pipeline error
-    set -euo pipefail
-
-    echo -e "\nGenerating SAM with bwa-mem2...\n"
-
-    bwa-mem2 mem -t ~{num_cpu} -K ~{input_bases} \
-    -R "@RG\tID:~{read_group_id}\tLB:~{library}\tPL:~{platform}\tPU:~{platform_unit}\tSM:~{sample_id}" \
-    ~{ref_fasta} \
-    ~{sep=" " input_fastqs} \
-    > ~{sample_id}.alignment_wRG.sam
-
-    samtools sort -@ ~{num_cpu} -m 4G ~{sample_id}.alignment_wRG.sam -o ~{sample_id}.alignment_wRG_sorted.bam
-  >>>
-
-  output {
-    File output_sam_wRG = "~{sample_id}.alignment_wRG.sam"
-    File output_bam = "~{sample_id}.alignment_wRG_sorted.bam"
-  }
-
-  runtime {
-    docker: docker_image
-    memory: "~{ram_gb} GB"
-    cpu: num_cpu
-    disks: "local-disk ~{disk_gb} HDD"
-    preemptible: preemptible
   }
 }
