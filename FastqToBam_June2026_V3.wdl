@@ -340,15 +340,21 @@ task BwaMem2 {
 
     echo -e "\nGenerating SAM with bwa-mem2...\n"
 
-    mkdir hg38_reference
-    cp ~{ref_fasta} hg38_reference/
-    cp ~{ref_fasta_index} hg38_reference/
-    cp ~{ref_dict} hg38_reference/
-    bwa-mem2 index -p hg38_reference/Homo_sapiens_assembly38 hg38_reference/Homo_sapiens_assembly38.fasta
+    # mkdir hg38_reference
+    # mv ~{ref_fasta} hg38_reference/
+    # mv ~{ref_fasta_index} hg38_reference/
+    # mv ~{ref_dict} hg38_reference/
+    # mv ~{ref_alt} hg38_reference/
+    # mv ~{ref_amb} hg38_reference/
+    # mv ~{ref_ann} hg38_reference/
+    # mv ~{ref_bwt} hg38_reference/
+    # mv ~{ref_pac} hg38_reference/
+    # mv ~{ref_sa} hg38_reference/
+    # bwa-mem2 index -p hg38_reference/Homo_sapiens_assembly38 hg38_reference/Homo_sapiens_assembly38.fasta
 
     bwa-mem2 mem -t ~{num_cpu} -K ~{input_bases} \
     -R "@RG\tID:~{read_group_id}\tLB:~{library}\tPL:~{platform}\tPU:~{platform_unit}\tSM:~{sample_id}" \
-    hg38_reference/Homo_sapiens_assembly38.fasta \
+    ~{ref_fasta} \
     ~{sep=" " input_fastqs} \
     > ~{sample_id}.alignment_wRG.sam
 
