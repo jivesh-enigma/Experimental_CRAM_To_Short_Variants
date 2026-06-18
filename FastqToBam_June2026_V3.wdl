@@ -358,12 +358,12 @@ task BwaMem2 {
     ~{sep=" " input_fastqs} \
     > ~{sample_id}.alignment_wRG.sam
 
-    samtools sort -@ ~{num_cpu} -m 4G ~{sample_id}.alignment_wRG.sam -o ~{sample_id}.alignment_wRG_sorted.bam
+    samtools view -bS -@ ~{num_cpu} -m 4G ~{sample_id}.alignment_wRG.sam -o ~{sample_id}.alignment_wRG.bam
   >>>
 
   output {
     File output_sam_wRG = "~{sample_id}.alignment_wRG.sam"
-    File output_bam = "~{sample_id}.alignment_wRG_sorted.bam"
+    File output_bam = "~{sample_id}.alignment_wRG.bam"
   }
 
   runtime {
