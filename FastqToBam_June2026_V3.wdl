@@ -328,7 +328,7 @@ task BwaMem2 {
     String platform_unit = "AVITI"
 
     String docker_image = "ghcr.io/uclahs-cds/bwa-mem2:2.3_samtools-1.17"
-    Int disk_factor = 2
+    Int disk_factor = 4
     Int disk_gb = ceil(size(input_fastqs, "GB") + size(ref_fasta, "GB") + size(ref_bwt, "GB")) * disk_factor + 10
     Int ram_gb = 64
     Int preemptible = 1
