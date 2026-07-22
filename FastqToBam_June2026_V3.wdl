@@ -223,6 +223,8 @@ task SplitFastq {
     File fastq
     Int n_shards
     String docker
+    Int ram_gb = 8
+    Int preemptible = 1
   }
 
   Int disk_gb = ceil(size(fastq, "GB") * 3) + 10
@@ -248,10 +250,10 @@ task SplitFastq {
 
   runtime {
     docker: docker
-    memory: "3.5GB"
+    memory: "~{ram_gb} GB"
     cpu: 2
     disks: "local-disk " + disk_gb + " HDD"
-    preemptible: 5
+    preemptible: preemptible
   }
 }
 
@@ -331,7 +333,7 @@ task BwaMem2 {
     Int disk_factor = 4
     Int disk_gb = ceil(size(input_fastqs, "GB") + size(ref_fasta, "GB") + size(ref_bwt, "GB")) * disk_factor + 10
     Int ram_gb = 64
-    Int preemptible = 1
+    Int preemptible = 0
   }
 
   command <<<
@@ -352,13 +354,13 @@ task BwaMem2 {
     # mv ~{ref_sa} hg38_reference/
     # bwa-mem2 index -p hg38_reference/Homo_sapiens_assembly38 hg38_reference/Homo_sapiens_assembly38.fasta
 
-    bwa-mem2 mem -t ~{num_cpu} -K ~{input_bases} \
+    bwa-mem2 mem -t ~{num_cpu * 2} -K ~{input_bases} \
     -R "@RG\tID:~{read_group_id}\tLB:~{library}\tPL:~{platform}\tPU:~{platform_unit}\tSM:~{sample_id}" \
     ~{ref_fasta} \
     ~{sep=" " input_fastqs} \
     > ~{sample_id}.alignment_wRG.sam
 
-    samtools view -bS -@ ~{num_cpu} -m 4G ~{sample_id}.alignment_wRG.sam -o ~{sample_id}.alignment_wRG.bam
+    samtools view -bS -@ ~{num_cpu * 2} ~{sample_id}.alignment_wRG.sam -o ~{sample_id}.alignment_wRG.bam
   >>>
 
   output {
