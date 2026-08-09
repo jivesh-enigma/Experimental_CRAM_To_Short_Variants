@@ -73,13 +73,15 @@ workflow FastqToBam {
       input:
         fastq = fq1,
         n_shards = n_fastq_shards,
-        docker = fastqsplitter_docker
+        docker = fastqsplitter_docker,
+        resource_monitoring_script = resource_monitoring_script
     }
     call SplitFastq as SplitFq2 {
       input:
         fastq = fq2,
         n_shards = n_fastq_shards,
-        docker = fastqsplitter_docker
+        docker = fastqsplitter_docker,
+        resource_monitoring_script = resource_monitoring_script
     }
   }
   Array[File] sharded_fq1 = select_first([SplitFq1.fq_shards, [fq1]])
@@ -232,6 +234,7 @@ task SplitFastq {
     String disk_type = "SSD"
     String docker
     Int preemptible = 1
+    File resource_monitoring_script
   }
 
   Int disk_gb = ceil(size(fastq, "GB") * disk_factor) + 10
@@ -239,6 +242,8 @@ task SplitFastq {
 
   command <<<
     set -eu -o pipefail
+
+    bash ~{resource_monitoring_script} > r_monitoring.log 2>&1 &
 
     # Build fastqsplitter command
     cmd="fastqsplitter -i ~{fastq}"
@@ -253,6 +258,7 @@ task SplitFastq {
 
   output {
     Array[File] fq_shards = glob("~{out_prefix}.*.fq.gz")
+    File resource_monitoring_output = "r_monitoring.log"
   }
 
   runtime {
