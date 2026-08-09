@@ -226,10 +226,10 @@ task SplitFastq {
   input {
     File fastq
     Int n_shards
-    Int cpu = 8
-    Int ram_gb = 4
-    Int disk_factor = 3
-    String disk_type = "HDD"
+    Int cpu = 4
+    Int ram_gb = 3
+    Int disk_factor = 4
+    String disk_type = "SSD"
     String docker
     Int preemptible = 1
   }
@@ -320,7 +320,7 @@ task BwaMem2 {
   input {
     String sample_id
     Array[File] input_fastqs
-    Int num_cpu = 16
+    Int num_cpu = 10
     Int input_bases = 100000000
 
     File ref_fasta
@@ -341,9 +341,9 @@ task BwaMem2 {
     String docker_image = "ghcr.io/uclahs-cds/bwa-mem2:2.3_samtools-1.17"
     Int disk_factor = 4
     Int disk_gb = ceil(size(input_fastqs, "GB") + size(ref_fasta, "GB") + size(ref_bwt, "GB")) * disk_factor + 10
-    Int ram_gb = 64
+    Int ram_gb = 40
     Int preemptible = 1
-    String disk_type = "HDD"
+    String disk_type = "SSD"
 
     File resource_monitoring_script
   }
