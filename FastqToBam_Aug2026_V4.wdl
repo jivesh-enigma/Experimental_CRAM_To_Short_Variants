@@ -147,6 +147,7 @@ workflow FastqToBam {
         ref_pac = reference_pac,
         ref_sa = reference_sa,
         resource_monitoring_script = resource_monitoring_script,
+        docker_image = "jiveshenigma/bwa-mem2_samtools:v1"
     }
   }
 
