@@ -130,7 +130,8 @@ workflow FastqToBam {
   scatter ( fq_pair in sharded_fq_pairs ) {
     call BwaMem2 as AlignPairs {
       input:
-        sample_id = sample_name + "." + basename(fq_pair.left, ".fq.gz"),
+        output_basename = sample_name + "." + basename(fq_pair.left, ".fq.gz"),
+        sample_id = sample_name,
         input_fastqs = [fq_pair.left, fq_pair.right],
         ref_fasta = reference_fasta,
         ref_fasta_index = reference_fasta_index,
@@ -308,6 +309,7 @@ task Bwa {
 task BwaMem2 {
   input {
     String sample_id
+    String output_basename
     Array[File] input_fastqs
     Int num_cpu = 16
     Int input_bases = 100000000
@@ -344,14 +346,14 @@ task BwaMem2 {
     -R "@RG\tID:~{read_group_id}\tLB:~{library}\tPL:~{platform}\tPU:~{platform_unit}\tSM:~{sample_id}" \
     ~{ref_fasta} \
     ~{sep=" " input_fastqs} \
-    > ~{sample_id}.alignment_wRG.sam
+    > ~{output_basename}.alignment_wRG.sam
 
-    samtools sort -@ ~{num_cpu} -m 4G ~{sample_id}.alignment_wRG.sam -o ~{sample_id}.alignment_wRG_sorted.bam
+    samtools sort -@ ~{num_cpu} -m 4G ~{output_basename}.alignment_wRG.sam -o ~{output_basename}.alignment_wRG_sorted.bam
   >>>
 
   output {
-    File output_sam_wRG = "~{sample_id}.alignment_wRG.sam"
-    File output_bam = "~{sample_id}.alignment_wRG_sorted.bam"
+    File output_sam_wRG = "~{output_basename}.alignment_wRG.sam"
+    File output_bam = "~{output_basename}.alignment_wRG_sorted.bam"
   }
 
   runtime {
